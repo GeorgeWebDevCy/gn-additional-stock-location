@@ -1,15 +1,21 @@
 # GN Additional Stock Location
 
-This WordPress plugin adds a second stock location field to WooCommerce products. It also lets you set a different price for items coming from that location. When an order is processed the stock is reduced from both locations accordingly and the price from the active location is used.
+GN Additional Stock Location extends WooCommerce with a second inventory location for every product. A separate price can be assigned to items stored in that location. Stock quantities and status are calculated from the combined amount and orders automatically deduct from both locations when needed.
+
+## Features
+
+- Second **Stock Location** field on the inventory tab for simple and variable products.
+- **2nd Location Price** field that is used when the primary location runs out of stock.
+- Stock status and available quantity are based on the sum of both locations.
+- Automatic price switching once the primary location is empty.
+- Order processing reduces stock from both locations and logs changes on the order.
+- Built in update checker pulls new releases from GitHub.
 
 ## Installation
 
 1. Copy the `gn-additional-stock-location` directory to your site's `wp-content/plugins` folder.
 2. Activate the plugin from the **Plugins** page in the WordPress admin.
-
-After activation, a **2nd Stock Location** field will appear in the product inventory tab.
-A **2nd Location Price** field is also added in the pricing section. For variable products each variation gets its own pair of fields for stock and price.
-When the primary location runs out of stock the plugin automatically uses the price from the 2nd location.
+3. Edit a product and enter values for the second location stock and price. Variations have the same fields.
 
 ## Updates
 
