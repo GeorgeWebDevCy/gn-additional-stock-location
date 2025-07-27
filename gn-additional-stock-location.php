@@ -2,7 +2,7 @@
 /**
  * Plugin Name: GN Additional Stock Location
  * Description: Adds a second stock location field to WooCommerce products and manages stock during checkout.
- * Version: 1.6.0
+ * Version: 1.7.0
  * Author: George Nicolaou
  */
 
@@ -48,10 +48,11 @@ function gn_asl_additional_stock_location() {
    echo '<div class="show_if_simple show_if_variable">';
    woocommerce_wp_text_input(
       array(
-         'id' => '_stock2',
-         'value' => get_post_meta( $product_object->get_id(), '_stock2', true ),
-         'label' => GN_ASL_SECONDARY_LOCATION_NAME . ' Stock',
-         'data_type' => 'stock',
+         'id'           => '_stock2',
+         'value'        => get_post_meta( $product_object->get_id(), '_stock2', true ),
+         'label'        => GN_ASL_SECONDARY_LOCATION_NAME . ' Stock',
+         'data_type'    => 'stock',
+         'wrapper_class'=> 'form-row form-row-first',
       )
    );
    echo '</div>';
@@ -73,7 +74,7 @@ function gn_asl_additional_stock_location_variation( $loop, $variation_data, $va
          'value'         => get_post_meta( $variation->ID, '_stock2', true ),
          'label'         => GN_ASL_SECONDARY_LOCATION_NAME . ' Stock',
          'data_type'     => 'stock',
-         'wrapper_class' => 'form-row form-row-full',
+         'wrapper_class' => 'form-row form-row-first',
       )
    );
 }
@@ -273,13 +274,14 @@ function gn_asl_location_name_field() {
    echo '<div class="show_if_simple show_if_variable">';
    woocommerce_wp_select(
       array(
-         'id'          => '_location2_name',
-         'value'       => get_post_meta( $product_object->get_id(), '_location2_name', true ) ?: GN_ASL_PRIMARY_LOCATION_NAME,
-         'label'       => 'Location Name',
-         'options'     => array(
+         'id'           => '_location2_name',
+         'value'        => get_post_meta( $product_object->get_id(), '_location2_name', true ) ?: GN_ASL_PRIMARY_LOCATION_NAME,
+         'label'        => 'Location Name',
+         'options'      => array(
             GN_ASL_PRIMARY_LOCATION_NAME   => GN_ASL_PRIMARY_LOCATION_NAME,
             GN_ASL_SECONDARY_LOCATION_NAME => GN_ASL_SECONDARY_LOCATION_NAME,
          ),
+         'wrapper_class'=> 'form-row form-row-last',
       )
    );
    echo '</div>';
@@ -303,7 +305,7 @@ function gn_asl_location_name_field_variation( $loop, $data, $variation ) {
             GN_ASL_PRIMARY_LOCATION_NAME   => GN_ASL_PRIMARY_LOCATION_NAME,
             GN_ASL_SECONDARY_LOCATION_NAME => GN_ASL_SECONDARY_LOCATION_NAME,
          ),
-         'wrapper_class' => 'form-row form-row-full',
+         'wrapper_class' => 'form-row form-row-last',
       )
    );
 }
