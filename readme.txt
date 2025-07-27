@@ -21,6 +21,8 @@ When the primary location is empty you can also specify a **Golden Sneakers Sale
 3. Edit a product to enter values for **Golden Sneakers Stock** and **Golden Sneakers Price**. Variations have their own fields as well.
 
 == Changelog ==
+= 1.5.1 =
+* Updater fix.
 = 1.5.0 =
 * Location Name field is now a dropdown that lets you choose between Sneakfreaks and Golden Sneakers.
 = 1.4.0 =
