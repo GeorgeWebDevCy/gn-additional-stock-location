@@ -102,3 +102,12 @@ function gn_asl_maybe_reduce_second_stock( $reduce, $order_id ) {
    $order->get_data_store()->set_stock_reduced( $order_id, true );
    return false;
 }
+require_once __DIR__ . '/plugin-update-checker/plugin-update-checker.php';
+use YahnisElsts\PluginUpdateChecker\v5\PucFactory;
+
+$gn_asl_update_checker = PucFactory::buildUpdateChecker(
+    'https://github.com/example/gn-additional-stock-location/',
+    __FILE__,
+    'gn-additional-stock-location'
+);
+$gn_asl_update_checker->setBranch('main');
