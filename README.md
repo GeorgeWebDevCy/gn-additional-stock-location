@@ -8,3 +8,7 @@ This WordPress plugin adds a second stock location field to WooCommerce products
 2. Activate the plugin from the **Plugins** page in the WordPress admin.
 
 After activation, a **2nd Stock Location** field will appear in the product inventory tab.
+
+## Updates
+
+This plugin integrates the [Plugin Update Checker](https://github.com/YahnisElsts/plugin-update-checker) library. Update checks are configured in `gn-additional-stock-location.php` and pull releases from the configured GitHub repository.
