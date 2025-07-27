@@ -2,7 +2,7 @@
 /**
  * Plugin Name: GN Additional Stock Location
  * Description: Adds a second stock location field to WooCommerce products and manages stock during checkout.
- * Version: 1.1.0
+ * Version: 1.2.0
  * Author: Your Name
  */
 
@@ -12,6 +12,8 @@ if ( ! defined( 'ABSPATH' ) ) {
 
 add_action( 'woocommerce_product_options_stock', 'gn_asl_additional_stock_location' );
 add_action( 'woocommerce_variation_options_inventory', 'gn_asl_additional_stock_location_variation', 10, 3 );
+add_action( 'woocommerce_product_options_pricing', 'gn_asl_additional_price_location' );
+add_action( 'woocommerce_variation_options_pricing', 'gn_asl_additional_price_location_variation', 10, 3 );
  
 function gn_asl_additional_stock_location() {
    global $product_object;
@@ -39,9 +41,38 @@ function gn_asl_additional_stock_location_variation( $loop, $variation_data, $va
       )
    );
 }
+
+function gn_asl_additional_price_location() {
+   global $product_object;
+   echo '<div class="show_if_simple show_if_variable">';
+   woocommerce_wp_text_input(
+      array(
+         'id' => '_price2',
+         'value' => get_post_meta( $product_object->get_id(), '_price2', true ),
+         'label' => '2nd Location Price',
+         'data_type' => 'price',
+      )
+   );
+   echo '</div>';
+}
+
+function gn_asl_additional_price_location_variation( $loop, $variation_data, $variation ) {
+   woocommerce_wp_text_input(
+      array(
+         'id'            => "variable_price2{$loop}",
+         'name'          => "variable_price2[{$loop}]",
+         'value'         => get_post_meta( $variation->ID, '_price2', true ),
+         'label'         => '2nd Location Price',
+         'data_type'     => 'price',
+         'wrapper_class' => 'form-row form-row-full',
+      )
+   );
+}
  
 add_action( 'save_post_product', 'gn_asl_save_additional_stock' );
 add_action( 'woocommerce_save_product_variation', 'gn_asl_save_additional_stock_variation', 10, 2 );
+add_action( 'save_post_product', 'gn_asl_save_additional_price' );
+add_action( 'woocommerce_save_product_variation', 'gn_asl_save_additional_price_variation', 10, 2 );
    
 function gn_asl_save_additional_stock( $product_id ) {
     global $typenow;
@@ -59,6 +90,23 @@ function gn_asl_save_additional_stock_variation( $variation_id, $i ) {
       update_post_meta( $variation_id, '_stock2', wc_stock_amount( wp_unslash( $_POST['variable_stock2'][ $i ] ) ) );
    }
 }
+
+function gn_asl_save_additional_price( $product_id ) {
+    global $typenow;
+    if ( 'product' === $typenow ) {
+      if ( defined( 'DOING_AUTOSAVE' ) && DOING_AUTOSAVE ) return;
+      if ( isset( $_POST['_price2'] ) ) {
+         update_post_meta( $product_id, '_price2', wc_clean( wp_unslash( $_POST['_price2'] ) ) );
+      }
+   }
+}
+
+function gn_asl_save_additional_price_variation( $variation_id, $i ) {
+   if ( defined( 'DOING_AUTOSAVE' ) && DOING_AUTOSAVE ) return;
+   if ( isset( $_POST['variable_price2'][ $i ] ) ) {
+      update_post_meta( $variation_id, '_price2', wc_clean( wp_unslash( $_POST['variable_price2'][ $i ] ) ) );
+   }
+}
  
 add_filter( 'woocommerce_product_get_stock_quantity' , 'gn_asl_get_overall_stock_quantity', 9999, 2 );
  
@@ -73,7 +121,25 @@ function gn_asl_get_overall_stock_status( $status, $product ) {
    if ( ! $product->managing_stock() ) return $status;
    $stock = (int) $product->get_stock_quantity() + (int) get_post_meta( $product->get_id(), '_stock2', true );
    $status = $stock && ( $stock > 0 ) ? 'instock' : 'outofstock';
-    return $status;
+   return $status;
+}
+
+add_filter( 'woocommerce_product_get_price', 'gn_asl_maybe_use_second_price', 10, 2 );
+add_filter( 'woocommerce_product_get_regular_price', 'gn_asl_maybe_use_second_price', 10, 2 );
+add_filter( 'woocommerce_product_get_sale_price', 'gn_asl_maybe_use_second_price', 10, 2 );
+add_filter( 'woocommerce_product_variation_get_price', 'gn_asl_maybe_use_second_price', 10, 2 );
+add_filter( 'woocommerce_product_variation_get_regular_price', 'gn_asl_maybe_use_second_price', 10, 2 );
+add_filter( 'woocommerce_product_variation_get_sale_price', 'gn_asl_maybe_use_second_price', 10, 2 );
+
+function gn_asl_maybe_use_second_price( $price, $product ) {
+   $primary_stock = (int) get_post_meta( $product->get_id(), '_stock', true );
+   if ( $primary_stock <= 0 ) {
+      $price2 = get_post_meta( $product->get_id(), '_price2', true );
+      if ( '' !== $price2 ) {
+         return $price2;
+      }
+   }
+   return $price;
 }
  
 add_filter( 'woocommerce_payment_complete_reduce_order_stock', 'gn_asl_maybe_reduce_second_stock', 9999, 2 );
