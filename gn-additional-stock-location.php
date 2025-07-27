@@ -15,6 +15,14 @@ add_action( 'woocommerce_variation_options_inventory', 'gn_asl_additional_stock_
 add_action( 'woocommerce_product_options_pricing', 'gn_asl_additional_price_location' );
 add_action( 'woocommerce_variation_options_pricing', 'gn_asl_additional_price_location_variation', 10, 3 );
  
+/**
+ * Display an input for the second stock location on the product edit screen.
+ *
+ * The value is stored in the custom meta field `_stock2` and applies to both
+ * simple and variable products.
+ *
+ * @return void
+ */
 function gn_asl_additional_stock_location() {
    global $product_object;
    echo '<div class="show_if_simple show_if_variable">';
@@ -29,6 +37,14 @@ function gn_asl_additional_stock_location() {
    echo '</div>';
 }
 
+/**
+ * Add the second stock location field to each product variation.
+ *
+ * @param int   $loop            Current variation index.
+ * @param array $variation_data  Data for the variation being edited.
+ * @param WP_Post $variation     The variation post object.
+ * @return void
+ */
 function gn_asl_additional_stock_location_variation( $loop, $variation_data, $variation ) {
    woocommerce_wp_text_input(
       array(
@@ -42,6 +58,14 @@ function gn_asl_additional_stock_location_variation( $loop, $variation_data, $va
    );
 }
 
+/**
+ * Display a price input that is used when stock from location two is sold.
+ *
+ * This field appears in the pricing section for simple and variable products
+ * and is saved to the meta key `_price2`.
+ *
+ * @return void
+ */
 function gn_asl_additional_price_location() {
    global $product_object;
    echo '<div class="show_if_simple show_if_variable">';
@@ -56,6 +80,14 @@ function gn_asl_additional_price_location() {
    echo '</div>';
 }
 
+/**
+ * Add the second location price field to each product variation.
+ *
+ * @param int   $loop            Current variation index.
+ * @param array $variation_data  Data for the variation being edited.
+ * @param WP_Post $variation     The variation post object.
+ * @return void
+ */
 function gn_asl_additional_price_location_variation( $loop, $variation_data, $variation ) {
    woocommerce_wp_text_input(
       array(
@@ -74,6 +106,12 @@ add_action( 'woocommerce_save_product_variation', 'gn_asl_save_additional_stock_
 add_action( 'save_post_product', 'gn_asl_save_additional_price' );
 add_action( 'woocommerce_save_product_variation', 'gn_asl_save_additional_price_variation', 10, 2 );
    
+/**
+ * Save the value of the second stock location for simple products.
+ *
+ * @param int $product_id ID of the product being saved.
+ * @return void
+ */
 function gn_asl_save_additional_stock( $product_id ) {
     global $typenow;
     if ( 'product' === $typenow ) {
@@ -84,6 +122,13 @@ function gn_asl_save_additional_stock( $product_id ) {
    }
 }
 
+/**
+ * Save second location stock for a product variation.
+ *
+ * @param int $variation_id ID of the variation being saved.
+ * @param int $i            Index of the variation in the form.
+ * @return void
+ */
 function gn_asl_save_additional_stock_variation( $variation_id, $i ) {
    if ( defined( 'DOING_AUTOSAVE' ) && DOING_AUTOSAVE ) return;
    if ( isset( $_POST['variable_stock2'][ $i ] ) ) {
@@ -91,6 +136,12 @@ function gn_asl_save_additional_stock_variation( $variation_id, $i ) {
    }
 }
 
+/**
+ * Save the second location price for simple products.
+ *
+ * @param int $product_id ID of the product being saved.
+ * @return void
+ */
 function gn_asl_save_additional_price( $product_id ) {
     global $typenow;
     if ( 'product' === $typenow ) {
@@ -101,6 +152,13 @@ function gn_asl_save_additional_price( $product_id ) {
    }
 }
 
+/**
+ * Save second location price for a product variation.
+ *
+ * @param int $variation_id ID of the variation being saved.
+ * @param int $i            Index of the variation in the form.
+ * @return void
+ */
 function gn_asl_save_additional_price_variation( $variation_id, $i ) {
    if ( defined( 'DOING_AUTOSAVE' ) && DOING_AUTOSAVE ) return;
    if ( isset( $_POST['variable_price2'][ $i ] ) ) {
@@ -108,15 +166,29 @@ function gn_asl_save_additional_price_variation( $variation_id, $i ) {
    }
 }
  
-add_filter( 'woocommerce_product_get_stock_quantity' , 'gn_asl_get_overall_stock_quantity', 9999, 2 );
- 
+add_filter( 'woocommerce_product_get_stock_quantity', 'gn_asl_get_overall_stock_quantity', 9999, 2 );
+
+/**
+ * Combine stock from both locations when displaying stock quantity.
+ *
+ * @param int       $value   Original stock quantity from WooCommerce.
+ * @param WC_Product $product Product being queried.
+ * @return int Total stock across both locations.
+ */
 function gn_asl_get_overall_stock_quantity( $value, $product ) {
    $value = (int) $value + (int) get_post_meta( $product->get_id(), '_stock2', true );
-    return $value;
+   return $value;
 }
  
-add_filter( 'woocommerce_product_get_stock_status' , 'gn_asl_get_overall_stock_status', 9999, 2 );
- 
+add_filter( 'woocommerce_product_get_stock_status', 'gn_asl_get_overall_stock_status', 9999, 2 );
+
+/**
+ * Determine stock status based on the combined stock quantity.
+ *
+ * @param string     $status  Original stock status.
+ * @param WC_Product $product Product being checked.
+ * @return string "instock" or "outofstock" based on total stock.
+ */
 function gn_asl_get_overall_stock_status( $status, $product ) {
    if ( ! $product->managing_stock() ) return $status;
    $stock = (int) $product->get_stock_quantity() + (int) get_post_meta( $product->get_id(), '_stock2', true );
@@ -131,6 +203,13 @@ add_filter( 'woocommerce_product_variation_get_price', 'gn_asl_maybe_use_second_
 add_filter( 'woocommerce_product_variation_get_regular_price', 'gn_asl_maybe_use_second_price', 10, 2 );
 add_filter( 'woocommerce_product_variation_get_sale_price', 'gn_asl_maybe_use_second_price', 10, 2 );
 
+/**
+ * Use the price from location two when the primary location is out of stock.
+ *
+ * @param string     $price   Current price determined by WooCommerce.
+ * @param WC_Product $product Product being priced.
+ * @return string New price if location one is empty, otherwise the original.
+ */
 function gn_asl_maybe_use_second_price( $price, $product ) {
    $primary_stock = (int) get_post_meta( $product->get_id(), '_stock', true );
    if ( $primary_stock <= 0 ) {
@@ -143,11 +222,22 @@ function gn_asl_maybe_use_second_price( $price, $product ) {
 }
  
 add_filter( 'woocommerce_payment_complete_reduce_order_stock', 'gn_asl_maybe_reduce_second_stock', 9999, 2 );
- 
+
+/**
+ * Reduce stock levels in both locations when an order is completed.
+ *
+ * The default WooCommerce stock reduction only handles the primary location.
+ * This function ensures that any remaining quantity is deducted from the
+ * secondary stock location.
+ *
+ * @param bool $reduce   Whether WooCommerce should reduce stock automatically.
+ * @param int  $order_id ID of the processed order.
+ * @return bool False to prevent default reduction when custom logic runs.
+ */
 function gn_asl_maybe_reduce_second_stock( $reduce, $order_id ) {
    $order = wc_get_order( $order_id );
    $atleastastock2change = false;
-   foreach ( $order->get_items() as $item ) {   
+   foreach ( $order->get_items() as $item ) {
       if ( ! $item->is_type( 'line_item' ) ) {
          continue;
       }
@@ -161,8 +251,8 @@ function gn_asl_maybe_reduce_second_stock( $reduce, $order_id ) {
       if ( $qty <= $stock1 ) continue;
       $atleastastock2change = true;
    }
-   if ( ! $atleastastock2change ) return $reduce;  
-   foreach ( $order->get_items() as $item ) {   
+   if ( ! $atleastastock2change ) return $reduce;
+   foreach ( $order->get_items() as $item ) {
       if ( ! $item->is_type( 'line_item' ) ) {
          continue;
       }
@@ -170,7 +260,7 @@ function gn_asl_maybe_reduce_second_stock( $reduce, $order_id ) {
       $item_stock_reduced = $item->get_meta( '_reduced_stock', true );
       if ( $item_stock_reduced || ! $product || ! $product->managing_stock() ) {
          continue;
-      }  
+      }
       $item_name = $product->get_formatted_name();
       $qty = apply_filters( 'woocommerce_order_item_quantity', $item->get_quantity(), $order, $item );
       $stock1 = (int) get_post_meta( $product->get_id(), '_stock', true );
@@ -178,12 +268,12 @@ function gn_asl_maybe_reduce_second_stock( $reduce, $order_id ) {
       if ( $qty <= $stock1 ) {
          wc_update_product_stock( $product, $qty, 'decrease' );
          $order->add_order_note( sprintf( 'Reduced stock for item "%s"; Stock 1: "%s" to "%s".', $item_name, $stock1, $stock1 - $qty ) );
-      } else {    
+      } else {
          $newstock2 = $stock2 - ( $qty - $stock1 );
          wc_update_product_stock( $product, $stock1, 'decrease' );
          update_post_meta( $product->get_id(), '_stock2', $newstock2 );
          $item->add_meta_data( '_reduced_stock', $qty, true );
-         $item->save();          
+         $item->save();
          $order->add_order_note( sprintf( 'Reduced stock for item "%s"; Stock 1: "%s" to "0" and Stock 2: "%s" to "%s".', $item_name, $stock1, $stock2, $newstock2 ) );
       }
    }
