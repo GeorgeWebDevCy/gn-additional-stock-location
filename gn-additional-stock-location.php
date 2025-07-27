@@ -2,7 +2,7 @@
 /**
  * Plugin Name: GN Additional Stock Location
  * Description: Adds a second stock location field to WooCommerce products and manages stock during checkout.
- * Version: 1.2.0
+ * Version: 1.3.0
  * Author: Your Name
  */
 
@@ -14,6 +14,8 @@ add_action( 'woocommerce_product_options_stock', 'gn_asl_additional_stock_locati
 add_action( 'woocommerce_variation_options_inventory', 'gn_asl_additional_stock_location_variation', 10, 3 );
 add_action( 'woocommerce_product_options_pricing', 'gn_asl_additional_price_location' );
 add_action( 'woocommerce_variation_options_pricing', 'gn_asl_additional_price_location_variation', 10, 3 );
+add_action( 'woocommerce_product_options_pricing', 'gn_asl_additional_sale_price_location' );
+add_action( 'woocommerce_variation_options_pricing', 'gn_asl_additional_sale_price_location_variation', 10, 3 );
  
 /**
  * Display an input for the second stock location on the product edit screen.
@@ -81,6 +83,28 @@ function gn_asl_additional_price_location() {
 }
 
 /**
+ * Display a sale price input for the second location.
+ *
+ * Stored in the meta key `_sale_price2` and used when the primary
+ * location is empty and a sale price is provided.
+ *
+ * @return void
+ */
+function gn_asl_additional_sale_price_location() {
+   global $product_object;
+   echo '<div class="show_if_simple show_if_variable">';
+   woocommerce_wp_text_input(
+      array(
+         'id'    => '_sale_price2',
+         'value' => get_post_meta( $product_object->get_id(), '_sale_price2', true ),
+         'label' => '2nd Location Sale Price',
+         'data_type' => 'price',
+      )
+   );
+   echo '</div>';
+}
+
+/**
  * Add the second location price field to each product variation.
  *
  * @param int   $loop            Current variation index.
@@ -100,11 +124,34 @@ function gn_asl_additional_price_location_variation( $loop, $variation_data, $va
       )
    );
 }
+
+/**
+ * Add the second location sale price field to each product variation.
+ *
+ * @param int   $loop            Current variation index.
+ * @param array $variation_data  Data for the variation being edited.
+ * @param WP_Post $variation     The variation post object.
+ * @return void
+ */
+function gn_asl_additional_sale_price_location_variation( $loop, $variation_data, $variation ) {
+   woocommerce_wp_text_input(
+      array(
+         'id'            => "variable_sale_price2{$loop}",
+         'name'          => "variable_sale_price2[{$loop}]",
+         'value'         => get_post_meta( $variation->ID, '_sale_price2', true ),
+         'label'         => '2nd Location Sale Price',
+         'data_type'     => 'price',
+         'wrapper_class' => 'form-row form-row-full',
+      )
+   );
+}
  
 add_action( 'save_post_product', 'gn_asl_save_additional_stock' );
 add_action( 'woocommerce_save_product_variation', 'gn_asl_save_additional_stock_variation', 10, 2 );
 add_action( 'save_post_product', 'gn_asl_save_additional_price' );
 add_action( 'woocommerce_save_product_variation', 'gn_asl_save_additional_price_variation', 10, 2 );
+add_action( 'save_post_product', 'gn_asl_save_additional_sale_price' );
+add_action( 'woocommerce_save_product_variation', 'gn_asl_save_additional_sale_price_variation', 10, 2 );
    
 /**
  * Save the value of the second stock location for simple products.
@@ -165,6 +212,36 @@ function gn_asl_save_additional_price_variation( $variation_id, $i ) {
       update_post_meta( $variation_id, '_price2', wc_clean( wp_unslash( $_POST['variable_price2'][ $i ] ) ) );
    }
 }
+
+/**
+ * Save the second location sale price for simple products.
+ *
+ * @param int $product_id ID of the product being saved.
+ * @return void
+ */
+function gn_asl_save_additional_sale_price( $product_id ) {
+    global $typenow;
+    if ( 'product' === $typenow ) {
+      if ( defined( 'DOING_AUTOSAVE' ) && DOING_AUTOSAVE ) return;
+      if ( isset( $_POST['_sale_price2'] ) ) {
+         update_post_meta( $product_id, '_sale_price2', wc_clean( wp_unslash( $_POST['_sale_price2'] ) ) );
+      }
+   }
+}
+
+/**
+ * Save second location sale price for a product variation.
+ *
+ * @param int $variation_id ID of the variation being saved.
+ * @param int $i            Index of the variation in the form.
+ * @return void
+ */
+function gn_asl_save_additional_sale_price_variation( $variation_id, $i ) {
+   if ( defined( 'DOING_AUTOSAVE' ) && DOING_AUTOSAVE ) return;
+   if ( isset( $_POST['variable_sale_price2'][ $i ] ) ) {
+      update_post_meta( $variation_id, '_sale_price2', wc_clean( wp_unslash( $_POST['variable_sale_price2'][ $i ] ) ) );
+   }
+}
  
 add_filter( 'woocommerce_product_get_stock_quantity', 'gn_asl_get_overall_stock_quantity', 9999, 2 );
 
@@ -202,6 +279,8 @@ add_filter( 'woocommerce_product_get_sale_price', 'gn_asl_maybe_use_second_price
 add_filter( 'woocommerce_product_variation_get_price', 'gn_asl_maybe_use_second_price', 10, 2 );
 add_filter( 'woocommerce_product_variation_get_regular_price', 'gn_asl_maybe_use_second_price', 10, 2 );
 add_filter( 'woocommerce_product_variation_get_sale_price', 'gn_asl_maybe_use_second_price', 10, 2 );
+add_filter( 'woocommerce_product_is_on_sale', 'gn_asl_second_price_is_on_sale', 10, 2 );
+add_filter( 'woocommerce_product_variation_is_on_sale', 'gn_asl_second_price_is_on_sale', 10, 2 );
 
 /**
  * Use the price from location two when the primary location is out of stock.
@@ -213,12 +292,42 @@ add_filter( 'woocommerce_product_variation_get_sale_price', 'gn_asl_maybe_use_se
 function gn_asl_maybe_use_second_price( $price, $product ) {
    $primary_stock = (int) get_post_meta( $product->get_id(), '_stock', true );
    if ( $primary_stock <= 0 ) {
-      $price2 = get_post_meta( $product->get_id(), '_price2', true );
-      if ( '' !== $price2 ) {
-         return $price2;
+      $sale_price2  = get_post_meta( $product->get_id(), '_sale_price2', true );
+      $regular2     = get_post_meta( $product->get_id(), '_price2', true );
+      $filter       = current_filter();
+
+      if ( in_array( $filter, array( 'woocommerce_product_get_sale_price', 'woocommerce_product_variation_get_sale_price' ), true ) ) {
+         return '' !== $sale_price2 ? $sale_price2 : '';
+      }
+
+      if ( in_array( $filter, array( 'woocommerce_product_get_regular_price', 'woocommerce_product_variation_get_regular_price' ), true ) ) {
+         return '' !== $regular2 ? $regular2 : $price;
+      }
+
+      if ( '' !== $sale_price2 ) {
+         return $sale_price2;
+      }
+      if ( '' !== $regular2 ) {
+         return $regular2;
       }
    }
    return $price;
+}
+
+/**
+ * Determine sale status when using the second location price.
+ *
+ * @param bool       $on_sale Current on sale state.
+ * @param WC_Product $product Product being checked.
+ * @return bool True if the second location has a sale price when active.
+ */
+function gn_asl_second_price_is_on_sale( $on_sale, $product ) {
+   $primary_stock = (int) get_post_meta( $product->get_id(), '_stock', true );
+   if ( $primary_stock <= 0 ) {
+      $sale_price2 = get_post_meta( $product->get_id(), '_sale_price2', true );
+      return '' !== $sale_price2;
+   }
+   return $on_sale;
 }
  
 add_filter( 'woocommerce_payment_complete_reduce_order_stock', 'gn_asl_maybe_reduce_second_stock', 9999, 2 );
