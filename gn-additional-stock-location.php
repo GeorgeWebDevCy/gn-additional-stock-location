@@ -2,7 +2,7 @@
 /**
  * Plugin Name: GN Additional Stock Location
  * Description: Adds a second stock location field to WooCommerce products and manages stock during checkout.
- * Version: 1.0.0
+ * Version: 1.1.0
  * Author: Your Name
  */
 
@@ -11,6 +11,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 }
 
 add_action( 'woocommerce_product_options_stock', 'gn_asl_additional_stock_location' );
+add_action( 'woocommerce_variation_options_inventory', 'gn_asl_additional_stock_location_variation', 10, 3 );
  
 function gn_asl_additional_stock_location() {
    global $product_object;
@@ -25,8 +26,22 @@ function gn_asl_additional_stock_location() {
    );
    echo '</div>';
 }
+
+function gn_asl_additional_stock_location_variation( $loop, $variation_data, $variation ) {
+   woocommerce_wp_text_input(
+      array(
+         'id'            => "variable_stock2{$loop}",
+         'name'          => "variable_stock2[{$loop}]",
+         'value'         => get_post_meta( $variation->ID, '_stock2', true ),
+         'label'         => '2nd Stock Location',
+         'data_type'     => 'stock',
+         'wrapper_class' => 'form-row form-row-full',
+      )
+   );
+}
  
 add_action( 'save_post_product', 'gn_asl_save_additional_stock' );
+add_action( 'woocommerce_save_product_variation', 'gn_asl_save_additional_stock_variation', 10, 2 );
    
 function gn_asl_save_additional_stock( $product_id ) {
     global $typenow;
@@ -35,6 +50,13 @@ function gn_asl_save_additional_stock( $product_id ) {
       if ( isset( $_POST['_stock2'] ) ) {
          update_post_meta( $product_id, '_stock2', $_POST['_stock2'] );
       }
+   }
+}
+
+function gn_asl_save_additional_stock_variation( $variation_id, $i ) {
+   if ( defined( 'DOING_AUTOSAVE' ) && DOING_AUTOSAVE ) return;
+   if ( isset( $_POST['variable_stock2'][ $i ] ) ) {
+      update_post_meta( $variation_id, '_stock2', wc_stock_amount( wp_unslash( $_POST['variable_stock2'][ $i ] ) ) );
    }
 }
  
