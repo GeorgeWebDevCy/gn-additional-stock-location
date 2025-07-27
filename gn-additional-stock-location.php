@@ -10,9 +10,9 @@ if ( ! defined( 'ABSPATH' ) ) {
     exit; // Exit if accessed directly.
 }
 
-add_action( 'woocommerce_product_options_stock', 'bbloomer_additional_stock_location' );
+add_action( 'woocommerce_product_options_stock', 'gn_asl_additional_stock_location' );
  
-function bbloomer_additional_stock_location() {
+function gn_asl_additional_stock_location() {
    global $product_object;
    echo '<div class="show_if_simple show_if_variable">';
    woocommerce_wp_text_input(
@@ -26,9 +26,9 @@ function bbloomer_additional_stock_location() {
    echo '</div>';
 }
  
-add_action( 'save_post_product', 'bbloomer_save_additional_stock' );
+add_action( 'save_post_product', 'gn_asl_save_additional_stock' );
    
-function bbloomer_save_additional_stock( $product_id ) {
+function gn_asl_save_additional_stock( $product_id ) {
     global $typenow;
     if ( 'product' === $typenow ) {
       if ( defined( 'DOING_AUTOSAVE' ) && DOING_AUTOSAVE ) return;
@@ -38,25 +38,25 @@ function bbloomer_save_additional_stock( $product_id ) {
    }
 }
  
-add_filter( 'woocommerce_product_get_stock_quantity' , 'bbloomer_get_overall_stock_quantity', 9999, 2 );
+add_filter( 'woocommerce_product_get_stock_quantity' , 'gn_asl_get_overall_stock_quantity', 9999, 2 );
  
-function bbloomer_get_overall_stock_quantity( $value, $product ) {
+function gn_asl_get_overall_stock_quantity( $value, $product ) {
    $value = (int) $value + (int) get_post_meta( $product->get_id(), '_stock2', true );
     return $value;
 }
  
-add_filter( 'woocommerce_product_get_stock_status' , 'bbloomer_get_overall_stock_status', 9999, 2 );
+add_filter( 'woocommerce_product_get_stock_status' , 'gn_asl_get_overall_stock_status', 9999, 2 );
  
-function bbloomer_get_overall_stock_status( $status, $product ) {
+function gn_asl_get_overall_stock_status( $status, $product ) {
    if ( ! $product->managing_stock() ) return $status;
    $stock = (int) $product->get_stock_quantity() + (int) get_post_meta( $product->get_id(), '_stock2', true );
    $status = $stock && ( $stock > 0 ) ? 'instock' : 'outofstock';
     return $status;
 }
  
-add_filter( 'woocommerce_payment_complete_reduce_order_stock', 'bbloomer_maybe_reduce_second_stock', 9999, 2 );
+add_filter( 'woocommerce_payment_complete_reduce_order_stock', 'gn_asl_maybe_reduce_second_stock', 9999, 2 );
  
-function bbloomer_maybe_reduce_second_stock( $reduce, $order_id ) {
+function gn_asl_maybe_reduce_second_stock( $reduce, $order_id ) {
    $order = wc_get_order( $order_id );
    $atleastastock2change = false;
    foreach ( $order->get_items() as $item ) {   
