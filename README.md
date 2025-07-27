@@ -4,9 +4,9 @@ GN Additional Stock Location extends WooCommerce with a second inventory locatio
 
 ## Features
 
-- Second **Stock Location** field on the inventory tab for simple and variable products.
-- **2nd Location Price** field that is used when the primary location runs out of stock.
-- **2nd Location Sale Price** to offer discounts when location two is active.
+- Second **Stock Location** field on the inventory tab for simple and variable products. The secondary location is called **Golden Sneakers** while the primary WooCommerce location is **Sneakfreaks**.
+- **Golden Sneakers Price** field that is used when the primary location runs out of stock.
+- **Golden Sneakers Sale Price** to offer discounts when location two is active.
 - Stock status and available quantity are based on the sum of both locations.
 - Automatic price switching once the primary location is empty.
 - Order processing reduces stock from both locations and logs changes on the order.
@@ -18,9 +18,13 @@ GN Additional Stock Location extends WooCommerce with a second inventory locatio
 2. Activate the plugin from the **Plugins** page in the WordPress admin.
 3. Edit a product and enter values for the second location stock and price. Variations have the same fields.
 
-## Sale Price for Location Two
+## Sale Price for Golden Sneakers
 
-Set **2nd Location Sale Price** to offer a discounted amount when stock from the second location is being sold. The sale price only applies once the primary stock level reaches zero. Regular WooCommerce sale functionality for the main price is unaffected.
+Set **Golden Sneakers Sale Price** to offer a discounted amount when stock from the second location is being sold. The sale price only applies once the primary stock level reaches zero. Regular WooCommerce sale functionality for the main price is unaffected.
+
+## Location Name Meta
+
+Each product stores the name of the secondary location in a read-only meta field. This field also appears on the product page so customers can see which location is active.
 
 ## Updates
 
