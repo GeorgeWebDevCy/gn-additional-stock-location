@@ -2,7 +2,7 @@
 /**
  * Plugin Name: GN Additional Stock Location
  * Description: Adds a second stock location field to WooCommerce products and manages stock during checkout.
- * Version: 1.3.0
+ * Version: 1.4.0
  * Author: Your Name
  */
 
@@ -259,7 +259,7 @@ function gn_asl_location_name_field() {
    woocommerce_wp_text_input(
       array(
          'id'                => '_location2_name',
-         'value'             => get_post_meta( $product_object->get_id(), '_location2_name', true ) ?: GN_ASL_SECONDARY_LOCATION_NAME,
+         'value'             => get_post_meta( $product_object->get_id(), '_location2_name', true ) ?: GN_ASL_PRIMARY_LOCATION_NAME,
          'label'             => 'Location Name',
          'custom_attributes' => array( 'readonly' => 'readonly' ),
       )
@@ -279,7 +279,7 @@ function gn_asl_location_name_field_variation( $loop, $data, $variation ) {
       array(
          'id'                => "variable_location2_name{$loop}",
          'name'              => "variable_location2_name[{$loop}]",
-         'value'             => get_post_meta( $variation->ID, '_location2_name', true ) ?: GN_ASL_SECONDARY_LOCATION_NAME,
+         'value'             => get_post_meta( $variation->ID, '_location2_name', true ) ?: GN_ASL_PRIMARY_LOCATION_NAME,
          'label'             => 'Location Name',
          'custom_attributes' => array( 'readonly' => 'readonly' ),
          'wrapper_class'     => 'form-row form-row-full',
@@ -294,7 +294,13 @@ function gn_asl_save_location_name( $product_id ) {
     global $typenow;
     if ( 'product' === $typenow ) {
         if ( defined( 'DOING_AUTOSAVE' ) && DOING_AUTOSAVE ) return;
-        update_post_meta( $product_id, '_location2_name', GN_ASL_SECONDARY_LOCATION_NAME );
+        $stock2 = get_post_meta( $product_id, '_stock2', true );
+        $price2 = get_post_meta( $product_id, '_price2', true );
+        if ( (float) $stock2 > 0 && '' !== $price2 ) {
+            update_post_meta( $product_id, '_location2_name', GN_ASL_SECONDARY_LOCATION_NAME );
+        } else {
+            update_post_meta( $product_id, '_location2_name', GN_ASL_PRIMARY_LOCATION_NAME );
+        }
     }
 }
 
@@ -303,7 +309,13 @@ function gn_asl_save_location_name( $product_id ) {
  */
 function gn_asl_save_location_name_variation( $variation_id, $i ) {
    if ( defined( 'DOING_AUTOSAVE' ) && DOING_AUTOSAVE ) return;
-   update_post_meta( $variation_id, '_location2_name', GN_ASL_SECONDARY_LOCATION_NAME );
+   $stock2 = get_post_meta( $variation_id, '_stock2', true );
+   $price2 = get_post_meta( $variation_id, '_price2', true );
+   if ( (float) $stock2 > 0 && '' !== $price2 ) {
+      update_post_meta( $variation_id, '_location2_name', GN_ASL_SECONDARY_LOCATION_NAME );
+   } else {
+      update_post_meta( $variation_id, '_location2_name', GN_ASL_PRIMARY_LOCATION_NAME );
+   }
 }
 
 add_action( 'woocommerce_product_meta_end', 'gn_asl_output_location_name_on_product' );
@@ -313,7 +325,7 @@ add_action( 'woocommerce_product_meta_end', 'gn_asl_output_location_name_on_prod
  */
 function gn_asl_output_location_name_on_product() {
    global $product;
-   $name = get_post_meta( $product->get_id(), '_location2_name', true ) ?: GN_ASL_SECONDARY_LOCATION_NAME;
+   $name = get_post_meta( $product->get_id(), '_location2_name', true ) ?: GN_ASL_PRIMARY_LOCATION_NAME;
    echo '<p class="gn-location-name">' . esc_html__( 'Location:', 'gn-additional-stock-location' ) . ' ' . esc_html( $name ) . '</p>';
 }
  
