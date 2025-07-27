@@ -1,4 +1,16 @@
- add_action( 'woocommerce_product_options_stock', 'bbloomer_additional_stock_location' );
+<?php
+/**
+ * Plugin Name: GN Additional Stock Location
+ * Description: Adds a second stock location field to WooCommerce products and manages stock during checkout.
+ * Version: 1.0.0
+ * Author: Your Name
+ */
+
+if ( ! defined( 'ABSPATH' ) ) {
+    exit; // Exit if accessed directly.
+}
+
+add_action( 'woocommerce_product_options_stock', 'bbloomer_additional_stock_location' );
  
 function bbloomer_additional_stock_location() {
    global $product_object;
