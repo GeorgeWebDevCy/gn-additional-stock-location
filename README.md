@@ -9,6 +9,7 @@ GN Additional Stock Location extends WooCommerce with a second inventory locatio
 - **Golden Sneakers Sale Price** to offer discounts when location two is active.
 - Stock status and available quantity are based on the sum of both locations.
 - Automatic price switching once the primary location is empty.
+- Dropdown **Location Name** field lets you switch between Sneakfreaks and Golden Sneakers.
 - Order processing reduces stock from both locations and logs changes on the order.
 - Built in update checker pulls new releases from GitHub.
 
@@ -24,7 +25,7 @@ Set **Golden Sneakers Sale Price** to offer a discounted amount when stock from 
 
 ## Location Name Meta
 
-Each product stores the name of the secondary location in a read-only meta field. This field also appears on the product page so customers can see which location is active.
+Each product stores the active location name in a dropdown field so you can choose between your predefined locations. The selected name also appears on the product page so customers can see which location is active.
 
 ## Updates
 

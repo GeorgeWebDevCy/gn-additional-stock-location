@@ -2,7 +2,7 @@
 /**
  * Plugin Name: GN Additional Stock Location
  * Description: Adds a second stock location field to WooCommerce products and manages stock during checkout.
- * Version: 1.4.0
+ * Version: 1.5.0
  * Author: Your Name
  */
 
@@ -256,12 +256,15 @@ function gn_asl_save_additional_sale_price_variation( $variation_id, $i ) {
 function gn_asl_location_name_field() {
    global $product_object;
    echo '<div class="show_if_simple show_if_variable">';
-   woocommerce_wp_text_input(
+   woocommerce_wp_select(
       array(
-         'id'                => '_location2_name',
-         'value'             => get_post_meta( $product_object->get_id(), '_location2_name', true ) ?: GN_ASL_PRIMARY_LOCATION_NAME,
-         'label'             => 'Location Name',
-         'custom_attributes' => array( 'readonly' => 'readonly' ),
+         'id'          => '_location2_name',
+         'value'       => get_post_meta( $product_object->get_id(), '_location2_name', true ) ?: GN_ASL_PRIMARY_LOCATION_NAME,
+         'label'       => 'Location Name',
+         'options'     => array(
+            GN_ASL_PRIMARY_LOCATION_NAME   => GN_ASL_PRIMARY_LOCATION_NAME,
+            GN_ASL_SECONDARY_LOCATION_NAME => GN_ASL_SECONDARY_LOCATION_NAME,
+         ),
       )
    );
    echo '</div>';
@@ -275,14 +278,17 @@ function gn_asl_location_name_field() {
  * @param WP_Post $variation Variation post object.
  */
 function gn_asl_location_name_field_variation( $loop, $data, $variation ) {
-   woocommerce_wp_text_input(
+   woocommerce_wp_select(
       array(
-         'id'                => "variable_location2_name{$loop}",
-         'name'              => "variable_location2_name[{$loop}]",
-         'value'             => get_post_meta( $variation->ID, '_location2_name', true ) ?: GN_ASL_PRIMARY_LOCATION_NAME,
-         'label'             => 'Location Name',
-         'custom_attributes' => array( 'readonly' => 'readonly' ),
-         'wrapper_class'     => 'form-row form-row-full',
+         'id'            => "variable_location2_name{$loop}",
+         'name'          => "variable_location2_name[{$loop}]",
+         'value'         => get_post_meta( $variation->ID, '_location2_name', true ) ?: GN_ASL_PRIMARY_LOCATION_NAME,
+         'label'         => 'Location Name',
+         'options'       => array(
+            GN_ASL_PRIMARY_LOCATION_NAME   => GN_ASL_PRIMARY_LOCATION_NAME,
+            GN_ASL_SECONDARY_LOCATION_NAME => GN_ASL_SECONDARY_LOCATION_NAME,
+         ),
+         'wrapper_class' => 'form-row form-row-full',
       )
    );
 }
@@ -294,12 +300,8 @@ function gn_asl_save_location_name( $product_id ) {
     global $typenow;
     if ( 'product' === $typenow ) {
         if ( defined( 'DOING_AUTOSAVE' ) && DOING_AUTOSAVE ) return;
-        $stock2 = get_post_meta( $product_id, '_stock2', true );
-        $price2 = get_post_meta( $product_id, '_price2', true );
-        if ( (float) $stock2 > 0 && '' !== $price2 ) {
-            update_post_meta( $product_id, '_location2_name', GN_ASL_SECONDARY_LOCATION_NAME );
-        } else {
-            update_post_meta( $product_id, '_location2_name', GN_ASL_PRIMARY_LOCATION_NAME );
+        if ( isset( $_POST['_location2_name'] ) ) {
+            update_post_meta( $product_id, '_location2_name', sanitize_text_field( wp_unslash( $_POST['_location2_name'] ) ) );
         }
     }
 }
@@ -309,12 +311,8 @@ function gn_asl_save_location_name( $product_id ) {
  */
 function gn_asl_save_location_name_variation( $variation_id, $i ) {
    if ( defined( 'DOING_AUTOSAVE' ) && DOING_AUTOSAVE ) return;
-   $stock2 = get_post_meta( $variation_id, '_stock2', true );
-   $price2 = get_post_meta( $variation_id, '_price2', true );
-   if ( (float) $stock2 > 0 && '' !== $price2 ) {
-      update_post_meta( $variation_id, '_location2_name', GN_ASL_SECONDARY_LOCATION_NAME );
-   } else {
-      update_post_meta( $variation_id, '_location2_name', GN_ASL_PRIMARY_LOCATION_NAME );
+   if ( isset( $_POST['variable_location2_name'][ $i ] ) ) {
+      update_post_meta( $variation_id, '_location2_name', sanitize_text_field( wp_unslash( $_POST['variable_location2_name'][ $i ] ) ) );
    }
 }
 
