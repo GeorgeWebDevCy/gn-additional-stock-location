@@ -10,12 +10,17 @@ if ( ! defined( 'ABSPATH' ) ) {
     exit; // Exit if accessed directly.
 }
 
+define( 'GN_ASL_PRIMARY_LOCATION_NAME', 'Sneakfreaks' );
+define( 'GN_ASL_SECONDARY_LOCATION_NAME', 'Golden Sneakers' );
+
 add_action( 'woocommerce_product_options_stock', 'gn_asl_additional_stock_location' );
 add_action( 'woocommerce_variation_options_inventory', 'gn_asl_additional_stock_location_variation', 10, 3 );
 add_action( 'woocommerce_product_options_pricing', 'gn_asl_additional_price_location' );
 add_action( 'woocommerce_variation_options_pricing', 'gn_asl_additional_price_location_variation', 10, 3 );
 add_action( 'woocommerce_product_options_pricing', 'gn_asl_additional_sale_price_location' );
 add_action( 'woocommerce_variation_options_pricing', 'gn_asl_additional_sale_price_location_variation', 10, 3 );
+add_action( 'woocommerce_product_options_stock', 'gn_asl_location_name_field' );
+add_action( 'woocommerce_variation_options_inventory', 'gn_asl_location_name_field_variation', 10, 3 );
  
 /**
  * Display an input for the second stock location on the product edit screen.
@@ -32,7 +37,7 @@ function gn_asl_additional_stock_location() {
       array(
          'id' => '_stock2',
          'value' => get_post_meta( $product_object->get_id(), '_stock2', true ),
-         'label' => '2nd Stock Location',
+         'label' => GN_ASL_SECONDARY_LOCATION_NAME . ' Stock',
          'data_type' => 'stock',
       )
    );
@@ -53,7 +58,7 @@ function gn_asl_additional_stock_location_variation( $loop, $variation_data, $va
          'id'            => "variable_stock2{$loop}",
          'name'          => "variable_stock2[{$loop}]",
          'value'         => get_post_meta( $variation->ID, '_stock2', true ),
-         'label'         => '2nd Stock Location',
+         'label'         => GN_ASL_SECONDARY_LOCATION_NAME . ' Stock',
          'data_type'     => 'stock',
          'wrapper_class' => 'form-row form-row-full',
       )
@@ -75,7 +80,7 @@ function gn_asl_additional_price_location() {
       array(
          'id' => '_price2',
          'value' => get_post_meta( $product_object->get_id(), '_price2', true ),
-         'label' => '2nd Location Price',
+         'label' => GN_ASL_SECONDARY_LOCATION_NAME . ' Price',
          'data_type' => 'price',
       )
    );
@@ -97,7 +102,7 @@ function gn_asl_additional_sale_price_location() {
       array(
          'id'    => '_sale_price2',
          'value' => get_post_meta( $product_object->get_id(), '_sale_price2', true ),
-         'label' => '2nd Location Sale Price',
+         'label' => GN_ASL_SECONDARY_LOCATION_NAME . ' Sale Price',
          'data_type' => 'price',
       )
    );
@@ -118,7 +123,7 @@ function gn_asl_additional_price_location_variation( $loop, $variation_data, $va
          'id'            => "variable_price2{$loop}",
          'name'          => "variable_price2[{$loop}]",
          'value'         => get_post_meta( $variation->ID, '_price2', true ),
-         'label'         => '2nd Location Price',
+         'label'         => GN_ASL_SECONDARY_LOCATION_NAME . ' Price',
          'data_type'     => 'price',
          'wrapper_class' => 'form-row form-row-full',
       )
@@ -139,7 +144,7 @@ function gn_asl_additional_sale_price_location_variation( $loop, $variation_data
          'id'            => "variable_sale_price2{$loop}",
          'name'          => "variable_sale_price2[{$loop}]",
          'value'         => get_post_meta( $variation->ID, '_sale_price2', true ),
-         'label'         => '2nd Location Sale Price',
+         'label'         => GN_ASL_SECONDARY_LOCATION_NAME . ' Sale Price',
          'data_type'     => 'price',
          'wrapper_class' => 'form-row form-row-full',
       )
@@ -152,6 +157,8 @@ add_action( 'save_post_product', 'gn_asl_save_additional_price' );
 add_action( 'woocommerce_save_product_variation', 'gn_asl_save_additional_price_variation', 10, 2 );
 add_action( 'save_post_product', 'gn_asl_save_additional_sale_price' );
 add_action( 'woocommerce_save_product_variation', 'gn_asl_save_additional_sale_price_variation', 10, 2 );
+add_action( 'save_post_product', 'gn_asl_save_location_name' );
+add_action( 'woocommerce_save_product_variation', 'gn_asl_save_location_name_variation', 10, 2 );
    
 /**
  * Save the value of the second stock location for simple products.
@@ -241,6 +248,73 @@ function gn_asl_save_additional_sale_price_variation( $variation_id, $i ) {
    if ( isset( $_POST['variable_sale_price2'][ $i ] ) ) {
       update_post_meta( $variation_id, '_sale_price2', wc_clean( wp_unslash( $_POST['variable_sale_price2'][ $i ] ) ) );
    }
+}
+
+/**
+ * Display read-only field with the second location name on the product edit screen.
+ */
+function gn_asl_location_name_field() {
+   global $product_object;
+   echo '<div class="show_if_simple show_if_variable">';
+   woocommerce_wp_text_input(
+      array(
+         'id'                => '_location2_name',
+         'value'             => get_post_meta( $product_object->get_id(), '_location2_name', true ) ?: GN_ASL_SECONDARY_LOCATION_NAME,
+         'label'             => 'Location Name',
+         'custom_attributes' => array( 'readonly' => 'readonly' ),
+      )
+   );
+   echo '</div>';
+}
+
+/**
+ * Display read-only field with the second location name for variations.
+ *
+ * @param int   $loop   Current variation index.
+ * @param array $data   Data for the variation being edited.
+ * @param WP_Post $variation Variation post object.
+ */
+function gn_asl_location_name_field_variation( $loop, $data, $variation ) {
+   woocommerce_wp_text_input(
+      array(
+         'id'                => "variable_location2_name{$loop}",
+         'name'              => "variable_location2_name[{$loop}]",
+         'value'             => get_post_meta( $variation->ID, '_location2_name', true ) ?: GN_ASL_SECONDARY_LOCATION_NAME,
+         'label'             => 'Location Name',
+         'custom_attributes' => array( 'readonly' => 'readonly' ),
+         'wrapper_class'     => 'form-row form-row-full',
+      )
+   );
+}
+
+/**
+ * Save the location name for simple products.
+ */
+function gn_asl_save_location_name( $product_id ) {
+    global $typenow;
+    if ( 'product' === $typenow ) {
+        if ( defined( 'DOING_AUTOSAVE' ) && DOING_AUTOSAVE ) return;
+        update_post_meta( $product_id, '_location2_name', GN_ASL_SECONDARY_LOCATION_NAME );
+    }
+}
+
+/**
+ * Save the location name for product variations.
+ */
+function gn_asl_save_location_name_variation( $variation_id, $i ) {
+   if ( defined( 'DOING_AUTOSAVE' ) && DOING_AUTOSAVE ) return;
+   update_post_meta( $variation_id, '_location2_name', GN_ASL_SECONDARY_LOCATION_NAME );
+}
+
+add_action( 'woocommerce_product_meta_end', 'gn_asl_output_location_name_on_product' );
+
+/**
+ * Display location name on the single product page.
+ */
+function gn_asl_output_location_name_on_product() {
+   global $product;
+   $name = get_post_meta( $product->get_id(), '_location2_name', true ) ?: GN_ASL_SECONDARY_LOCATION_NAME;
+   echo '<p class="gn-location-name">' . esc_html__( 'Location:', 'gn-additional-stock-location' ) . ' ' . esc_html( $name ) . '</p>';
 }
  
 add_filter( 'woocommerce_product_get_stock_quantity', 'gn_asl_get_overall_stock_quantity', 9999, 2 );
