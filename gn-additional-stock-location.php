@@ -3,7 +3,7 @@
  * Plugin Name: GN Additional Stock Location
  * Description: Adds a second stock location field to WooCommerce products and manages stock during checkout.
  * Version: 1.5.0
- * Author: Your Name
+ * Author: George Nicolaou
  */
 
 if ( ! defined( 'ABSPATH' ) ) {
@@ -477,7 +477,7 @@ require_once __DIR__ . '/plugin-update-checker/plugin-update-checker.php';
 use YahnisElsts\PluginUpdateChecker\v5\PucFactory;
 
 $gn_asl_update_checker = PucFactory::buildUpdateChecker(
-    'https://github.com/example/gn-additional-stock-location/',
+    'https://github.com/GeorgeWebDevCy/gn-additional-stock-location',
     __FILE__,
     'gn-additional-stock-location'
 );
