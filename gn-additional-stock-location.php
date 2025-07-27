@@ -2,7 +2,7 @@
 /**
  * Plugin Name: GN Additional Stock Location
  * Description: Adds a second stock location field to WooCommerce products and manages stock during checkout.
- * Version: 1.5.1
+ * Version: 1.6.0
  * Author: George Nicolaou
  */
 
@@ -95,6 +95,7 @@ function gn_asl_additional_price_location() {
          'value' => get_post_meta( $product_object->get_id(), '_price2', true ),
          'label' => GN_ASL_SECONDARY_LOCATION_NAME . ' Price',
          'data_type' => 'price',
+         'wrapper_class' => 'form-row form-row-first',
       )
    );
    echo '</div>';
@@ -117,6 +118,7 @@ function gn_asl_additional_sale_price_location() {
          'value' => get_post_meta( $product_object->get_id(), '_sale_price2', true ),
          'label' => GN_ASL_SECONDARY_LOCATION_NAME . ' Sale Price',
          'data_type' => 'price',
+         'wrapper_class' => 'form-row form-row-last',
       )
    );
    echo '</div>';
@@ -138,7 +140,7 @@ function gn_asl_additional_price_location_variation( $loop, $variation_data, $va
          'value'         => get_post_meta( $variation->ID, '_price2', true ),
          'label'         => GN_ASL_SECONDARY_LOCATION_NAME . ' Price',
          'data_type'     => 'price',
-         'wrapper_class' => 'form-row form-row-full',
+         'wrapper_class' => 'form-row form-row-first',
       )
    );
 }
@@ -159,7 +161,7 @@ function gn_asl_additional_sale_price_location_variation( $loop, $variation_data
          'value'         => get_post_meta( $variation->ID, '_sale_price2', true ),
          'label'         => GN_ASL_SECONDARY_LOCATION_NAME . ' Sale Price',
          'data_type'     => 'price',
-         'wrapper_class' => 'form-row form-row-full',
+         'wrapper_class' => 'form-row form-row-last',
       )
    );
 }
