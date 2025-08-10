@@ -2,7 +2,7 @@
 /**
  * Plugin Name: GN Additional Stock Location
  * Description: Adds a second stock location field to WooCommerce products and manages stock during checkout.
- * Version: 1.7.0
+ * Version: 1.8.0
  * Author: George Nicolaou
  */
 
@@ -23,8 +23,8 @@ $myUpdateChecker = PucFactory::buildUpdateChecker(
 //Set the branch that contains the stable release.
 $myUpdateChecker->setBranch('main');
 
-define( 'GN_ASL_PRIMARY_LOCATION_NAME', 'Sneakfreaks' );
-define( 'GN_ASL_SECONDARY_LOCATION_NAME', 'Golden Sneakers' );
+define( 'GN_ASL_PRIMARY_LOCATION_NAME', apply_filters( 'gn_asl_primary_location_name', 'Sneakfreaks' ) );
+define( 'GN_ASL_SECONDARY_LOCATION_NAME', apply_filters( 'gn_asl_secondary_location_name', 'Golden Sneakers' ) );
 
 add_action( 'woocommerce_product_options_stock', 'gn_asl_additional_stock_location' );
 add_action( 'woocommerce_variation_options_inventory', 'gn_asl_additional_stock_location_variation', 10, 3 );
@@ -344,6 +344,18 @@ function gn_asl_output_location_name_on_product() {
    echo '<p class="gn-location-name">' . esc_html__( 'Location:', 'gn-additional-stock-location' ) . ' ' . esc_html( $name ) . '</p>';
 }
  
+/**
+ * Get total stock across primary and secondary locations.
+ *
+ * @param int $product_id Product ID.
+ * @return int Total stock.
+ */
+function gn_asl_get_total_stock( $product_id ) {
+   $primary   = (int) get_post_meta( $product_id, '_stock', true );
+   $secondary = (int) get_post_meta( $product_id, '_stock2', true );
+   return $primary + $secondary;
+}
+
 add_filter( 'woocommerce_product_get_stock_quantity', 'gn_asl_get_overall_stock_quantity', 9999, 2 );
 
 /**
@@ -354,10 +366,9 @@ add_filter( 'woocommerce_product_get_stock_quantity', 'gn_asl_get_overall_stock_
  * @return int Total stock across both locations.
  */
 function gn_asl_get_overall_stock_quantity( $value, $product ) {
-   $value = (int) $value + (int) get_post_meta( $product->get_id(), '_stock2', true );
-   return $value;
+   return gn_asl_get_total_stock( $product->get_id() );
 }
- 
+
 add_filter( 'woocommerce_product_get_stock_status', 'gn_asl_get_overall_stock_status', 9999, 2 );
 
 /**
@@ -369,9 +380,8 @@ add_filter( 'woocommerce_product_get_stock_status', 'gn_asl_get_overall_stock_st
  */
 function gn_asl_get_overall_stock_status( $status, $product ) {
    if ( ! $product->managing_stock() ) return $status;
-   $stock = (int) $product->get_stock_quantity() + (int) get_post_meta( $product->get_id(), '_stock2', true );
-   $status = $stock && ( $stock > 0 ) ? 'instock' : 'outofstock';
-   return $status;
+   $stock = gn_asl_get_total_stock( $product->get_id() );
+   return $stock > 0 ? 'instock' : 'outofstock';
 }
 
 add_filter( 'woocommerce_product_get_price', 'gn_asl_maybe_use_second_price', 10, 2 );
