@@ -191,15 +191,16 @@ final class Module {
         ]);
     }
 
-    /** Admin submenu under WooCommerce. */
+    /** Admin top-level menu for the import log. */
     public static function admin_menu() : void {
-        add_submenu_page(
-            'woocommerce',
+        add_menu_page(
             'ASL Import Log',
             'ASL Import Log',
             'manage_woocommerce',
             'gn-asl-import-log',
-            [__CLASS__, 'render_log_page']
+            [__CLASS__, 'render_log_page'],
+            'dashicons-media-text',
+            56
         );
     }
 
