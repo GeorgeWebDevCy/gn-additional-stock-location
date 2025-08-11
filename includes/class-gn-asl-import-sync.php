@@ -72,21 +72,34 @@ final class Module {
 
         if ($existing_id && (int)$existing_id !== (int)$post_id) {
             // A duplicate was created—merge then trash the newcomer.
-            $existing_type  = get_post_type($existing_id);
+            $existing_type   = get_post_type($existing_id);
             $existing_parent = ($existing_type === 'product_variation') ? (int) wp_get_post_parent_id($existing_id) : 0;
+            $existing_title  = get_the_title($existing_id);
+            $created_title   = get_the_title($post_id);
 
-            $msg = 'Duplicate detected – matching existing ';
-            $msg .= ($existing_type === 'product_variation') ? 'variation' : 'product';
-            $msg .= '; merging into existing and trashing new post.';
+            $msg = sprintf(
+                'Duplicate detected – found same SKU "%s" on existing %s "%s" (ID %d) when saving "%s" (ID %d); merging into existing and trashing new post.',
+                $sku,
+                ($existing_type === 'product_variation') ? 'variation' : 'product',
+                $existing_title,
+                $existing_id,
+                $created_title,
+                $post_id
+            );
 
             $ctx = [
-                'sku'        => $sku,
-                'existing'   => (int)$existing_id,
-                'created'    => (int)$post_id,
-                'import_id'  => (int)$import_id,
-                'match_type' => $existing_type,
+                'sku'             => $sku,
+                'existing'        => (int) $existing_id,
+                'existing_title'  => $existing_title,
+                'created'         => (int) $post_id,
+                'created_title'   => $created_title,
+                'import_id'       => (int) $import_id,
+                'match_type'      => $existing_type,
             ];
-            if ($existing_parent) $ctx['existing_parent'] = $existing_parent;
+            if ($existing_parent) {
+                $ctx['existing_parent']       = $existing_parent;
+                $ctx['existing_parent_title'] = get_the_title($existing_parent);
+            }
 
             self::log($msg, $ctx);
 
@@ -96,8 +109,8 @@ final class Module {
 
             wp_trash_post($post_id);
 
-            $ctx['kept_id'] = (int)$existing_id;
-            $ctx['trashed'] = (int)$post_id;
+            $ctx['kept_id']   = (int) $existing_id;
+            $ctx['trashed']   = (int) $post_id;
             self::log('Merged and trashed duplicate.', $ctx);
             return;
         }
@@ -148,18 +161,28 @@ final class Module {
             if ($existing_id) {
                 $existing_type   = get_post_type($existing_id);
                 $existing_parent = ($existing_type === 'product_variation') ? (int) wp_get_post_parent_id($existing_id) : 0;
+                $existing_title  = get_the_title($existing_id);
 
-                $article_data['ID'] = (int)$existing_id; // tell WPAI to update this post
+                $article_data['ID'] = (int) $existing_id; // tell WPAI to update this post
 
-                $msg = 'pmxi_article_data forced update by SKU – matched existing ';
-                $msg .= ($existing_type === 'product_variation') ? 'variation' : 'product';
+                $msg = sprintf(
+                    'pmxi_article_data forced update by SKU – found existing %s "%s" (ID %d) with SKU "%s".',
+                    ($existing_type === 'product_variation') ? 'variation' : 'product',
+                    $existing_title,
+                    $existing_id,
+                    $sku
+                );
                 $ctx = [
-                    'sku'        => $sku,
-                    'existing'   => (int)$existing_id,
-                    'import_id'  => (int)$import_id,
-                    'match_type' => $existing_type,
+                    'sku'            => $sku,
+                    'existing'       => (int) $existing_id,
+                    'existing_title' => $existing_title,
+                    'import_id'      => (int) $import_id,
+                    'match_type'     => $existing_type,
                 ];
-                if ($existing_parent) $ctx['existing_parent'] = $existing_parent;
+                if ($existing_parent) {
+                    $ctx['existing_parent']       = $existing_parent;
+                    $ctx['existing_parent_title'] = get_the_title($existing_parent);
+                }
 
                 self::log($msg, $ctx);
             }
