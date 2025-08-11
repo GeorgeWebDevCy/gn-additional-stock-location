@@ -54,8 +54,14 @@ final class Module {
         @file_put_contents(self::log_path(), $line, FILE_APPEND);
     }
 
-    /** pmxi_saved_post — after WPAI creates/updates a record. */
-    public static function on_saved_post($post_id, $xml, $is_update, $import_id) : void {
+    /**
+     * pmxi_saved_post — after WPAI creates/updates a record.
+     *
+     * WP All Import 4.8+ passes only three arguments to this action. The fourth
+     * parameter $import_id is therefore optional for backwards compatibility
+     * with older versions that still provided it.
+     */
+    public static function on_saved_post($post_id, $xml, $is_update, $import_id = 0) : void {
         $sku = get_post_meta($post_id, '_sku', true);
         if (empty($sku)) {
             self::log('Saved post has no SKU; skipping.', compact('post_id','import_id','is_update'));
