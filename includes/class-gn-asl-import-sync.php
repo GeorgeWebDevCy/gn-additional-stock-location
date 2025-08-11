@@ -72,12 +72,23 @@ final class Module {
 
         if ($existing_id && (int)$existing_id !== (int)$post_id) {
             // A duplicate was created—merge then trash the newcomer.
-            self::log('Duplicate detected – merging into existing and trashing new post.', [
-                'sku'       => $sku,
-                'existing'  => (int)$existing_id,
-                'created'   => (int)$post_id,
-                'import_id' => (int)$import_id
-            ]);
+            $existing_type  = get_post_type($existing_id);
+            $existing_parent = ($existing_type === 'product_variation') ? (int) wp_get_post_parent_id($existing_id) : 0;
+
+            $msg = 'Duplicate detected – matching existing ';
+            $msg .= ($existing_type === 'product_variation') ? 'variation' : 'product';
+            $msg .= '; merging into existing and trashing new post.';
+
+            $ctx = [
+                'sku'        => $sku,
+                'existing'   => (int)$existing_id,
+                'created'    => (int)$post_id,
+                'import_id'  => (int)$import_id,
+                'match_type' => $existing_type,
+            ];
+            if ($existing_parent) $ctx['existing_parent'] = $existing_parent;
+
+            self::log($msg, $ctx);
 
             self::copy_location_meta($post_id, $existing_id);
             self::copy_price_meta($post_id, $existing_id);
@@ -85,11 +96,9 @@ final class Module {
 
             wp_trash_post($post_id);
 
-            self::log('Merged and trashed duplicate.', [
-                'sku'     => $sku,
-                'kept_id' => (int)$existing_id,
-                'trashed' => (int)$post_id
-            ]);
+            $ctx['kept_id'] = (int)$existing_id;
+            $ctx['trashed'] = (int)$post_id;
+            self::log('Merged and trashed duplicate.', $ctx);
             return;
         }
 
@@ -137,12 +146,22 @@ final class Module {
         if ($sku !== '' && function_exists('wc_get_product_id_by_sku')) {
             $existing_id = wc_get_product_id_by_sku($sku);
             if ($existing_id) {
+                $existing_type   = get_post_type($existing_id);
+                $existing_parent = ($existing_type === 'product_variation') ? (int) wp_get_post_parent_id($existing_id) : 0;
+
                 $article_data['ID'] = (int)$existing_id; // tell WPAI to update this post
-                self::log('pmxi_article_data forced update by SKU.', [
-                    'sku'       => $sku,
-                    'existing'  => (int)$existing_id,
-                    'import_id' => (int)$import_id
-                ]);
+
+                $msg = 'pmxi_article_data forced update by SKU – matched existing ';
+                $msg .= ($existing_type === 'product_variation') ? 'variation' : 'product';
+                $ctx = [
+                    'sku'        => $sku,
+                    'existing'   => (int)$existing_id,
+                    'import_id'  => (int)$import_id,
+                    'match_type' => $existing_type,
+                ];
+                if ($existing_parent) $ctx['existing_parent'] = $existing_parent;
+
+                self::log($msg, $ctx);
             }
         }
         return $article_data;
