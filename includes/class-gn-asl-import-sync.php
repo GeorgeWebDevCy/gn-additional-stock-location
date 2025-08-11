@@ -249,10 +249,4 @@ final class Module {
 
 // Boot when plugins loaded
 add_action('plugins_loaded', [\GN_ASL\ImportSync\Module::class, 'boot'], 20);
-// Load the WP All Import sync + logger module if WooCommerce is active.
-if ( class_exists( 'WooCommerce' ) ) {
-    $sync_file = __DIR__ . '/includes/class-gn-asl-import-sync.php';
-    if ( file_exists( $sync_file ) ) {
-        require_once $sync_file;
-    }
-}
+
