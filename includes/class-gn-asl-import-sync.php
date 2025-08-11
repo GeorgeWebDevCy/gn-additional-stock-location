@@ -249,6 +249,3 @@ final class Module {
     }
 }
 
-// Boot when plugins loaded
-add_action('plugins_loaded', [\GN_ASL\ImportSync\Module::class, 'boot'], 20);
-
