@@ -2,7 +2,7 @@
 /**
  * Plugin Name: GN Additional Stock Location
  * Description: Adds a second stock location field to WooCommerce products and manages stock during checkout.
- * Version: 1.8.0
+ * Version: 1.8.1
  * Author: George Nicolaou
  */
 
@@ -499,12 +499,14 @@ function gn_asl_maybe_reduce_second_stock( $reduce, $order_id ) {
    }
    $order->get_data_store()->set_stock_reduced( $order_id, true );
    return false;
-
-   // Load the WP All Import sync + logger module (only if Woo + WPAI present).
-if ( ! defined('ABSPATH') ) exit;
-$__gn_asl_module = __DIR__ . '/includes/class-gn-asl-import-sync.php';
-if ( file_exists($__gn_asl_module) ) {
-    require_once $__gn_asl_module;
 }
 
+/**
+ * Load the WP All Import sync + logger module (only if WooCommerce is active).
+ */
+if ( class_exists( 'WooCommerce' ) ) {
+   $module_file = __DIR__ . '/includes/class-gn-asl-import-sync.php';
+   if ( file_exists( $module_file ) ) {
+      require_once $module_file;
+   }
 }

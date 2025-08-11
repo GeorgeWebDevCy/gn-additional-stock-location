@@ -3,7 +3,7 @@ Contributors: yourname
 Tags: woocommerce, inventory, stock
 Requires at least: 5.0
 Tested up to: 6.5
-Stable tag: 1.8.0
+Stable tag: 1.8.1
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -21,6 +21,9 @@ When the primary location is empty you can also specify a **Golden Sneakers Sale
 3. Edit a product to enter values for **Golden Sneakers Stock** and **Golden Sneakers Price**. Variations have their own fields as well.
 
 == Changelog ==
+= 1.8.1 =
+* Fixed WP All Import logger not loading and ensured module inclusion.
+
 = 1.8.0 =
 * Location names are now filterable via `gn_asl_primary_location_name` and `gn_asl_secondary_location_name`.
 * Fixed double-counting of secondary stock in stock status filter.
