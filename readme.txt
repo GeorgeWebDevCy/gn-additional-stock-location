@@ -3,7 +3,7 @@ Contributors: yourname
 Tags: woocommerce, inventory, stock
 Requires at least: 5.0
 Tested up to: 6.5
-Stable tag: 1.9.4
+Stable tag: 1.9.5
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -21,6 +21,8 @@ When the primary location is empty you can also specify a **Golden Sneakers Sale
 3. Edit a product to enter values for **Golden Sneakers Stock** and **Golden Sneakers Price**. Variations have their own fields as well.
 
 == Changelog ==
+= 1.9.5 =
+* Restore compatibility with WP All Import by making the `pmxi_saved_post` hook's import ID parameter optional.
 = 1.9.4 =
 * Ensure GN ASL module loads after WooCommerce so the Import Log menu is always available.
 = 1.9.3 =
