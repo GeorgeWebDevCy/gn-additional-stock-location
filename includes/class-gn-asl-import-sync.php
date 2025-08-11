@@ -193,10 +193,11 @@ final class Module {
 
     /** Admin top-level menu for the import log. */
     public static function admin_menu() : void {
+        $capability = current_user_can('manage_woocommerce') ? 'manage_woocommerce' : 'manage_options';
         add_menu_page(
             'ASL Import Log',
             'ASL Import Log',
-            'manage_woocommerce',
+            $capability,
             'gn-asl-import-log',
             [__CLASS__, 'render_log_page'],
             'dashicons-media-text',
