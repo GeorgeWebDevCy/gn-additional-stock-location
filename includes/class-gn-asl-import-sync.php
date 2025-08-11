@@ -191,18 +191,36 @@ final class Module {
         ]);
     }
 
-    /** Admin top-level menu for the import log. */
+    /** Admin top-level menu for the plugin with Import Log submenu. */
     public static function admin_menu() : void {
-        $capability = current_user_can('manage_woocommerce') ? 'manage_woocommerce' : 'manage_options';
+        $capability  = current_user_can('manage_woocommerce') ? 'manage_woocommerce' : 'manage_options';
+        $parent_slug = 'gn-asl';
+
         add_menu_page(
-            'ASL Import Log',
-            'ASL Import Log',
+            'GN ASL',
+            'GN ASL',
             $capability,
-            'gn-asl-import-log',
-            [__CLASS__, 'render_log_page'],
+            $parent_slug,
+            [__CLASS__, 'render_main_page'],
             'dashicons-media-text',
             56
         );
+
+        add_submenu_page(
+            $parent_slug,
+            'Import Log',
+            'Import Log',
+            $capability,
+            'gn-asl-import-log',
+            [__CLASS__, 'render_log_page']
+        );
+
+        remove_submenu_page($parent_slug, $parent_slug);
+    }
+
+    /** Render main plugin page. */
+    public static function render_main_page() : void {
+        echo '<div class="wrap"><h1>GN Additional Stock Location</h1></div>';
     }
 
     /** Render log page with clear + tail. */
