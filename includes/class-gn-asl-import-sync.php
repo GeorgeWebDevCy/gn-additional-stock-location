@@ -54,6 +54,24 @@ final class Module {
         @file_put_contents(self::log_path(), $line, FILE_APPEND);
     }
 
+    /** Log a snapshot of key meta values for a post. */
+    private static function log_meta_snapshot(int $post_id, string $msg, array $extra = []) : void {
+        $data = [
+            'post_id' => (int) $post_id,
+            'sku'     => get_post_meta($post_id, '_sku', true),
+            'values'  => [
+                '_stock'         => get_post_meta($post_id, '_stock', true),
+                '_stock2'        => get_post_meta($post_id, '_stock2', true),
+                '_regular_price' => get_post_meta($post_id, '_regular_price', true),
+                '_sale_price'    => get_post_meta($post_id, '_sale_price', true),
+                '_price2'        => get_post_meta($post_id, '_price2', true),
+                '_sale_price2'   => get_post_meta($post_id, '_sale_price2', true),
+            ],
+        ];
+        $data = array_merge($data, $extra);
+        self::log($msg, $data);
+    }
+
     /**
      * pmxi_saved_post — after WPAI creates/updates a record.
      *
@@ -67,6 +85,12 @@ final class Module {
             self::log('Saved post has no SKU; skipping.', compact('post_id','import_id','is_update'));
             return;
         }
+
+        // Snapshot of values right after import.
+        self::log_meta_snapshot($post_id, 'Import values received.', [
+            'import_id' => (int) $import_id,
+            'is_update' => (bool) $is_update,
+        ]);
 
         $existing_id = wc_get_product_id_by_sku($sku);
 
@@ -107,6 +131,8 @@ final class Module {
             self::copy_price_meta($post_id, $existing_id);
             self::sync_stock_status_from_locations($existing_id);
 
+            self::log_meta_snapshot($existing_id, 'Existing product after merge.', ['import_id' => (int) $import_id]);
+
             wp_trash_post($post_id);
 
             $ctx['kept_id']   = (int) $existing_id;
@@ -117,28 +143,14 @@ final class Module {
 
         // Normal path: updated or created the correct post.
         self::sync_stock_status_from_locations($post_id);
-
-        $data = [
-            'post_id'          => (int)$post_id,
-            'import_id'        => (int)$import_id,
-            'is_update'        => (bool)$is_update,
-            'sku'              => $sku,
-            'primary_stock'    => (int) get_post_meta($post_id, '_stock', true),
-            'secondary_stock'  => (int) get_post_meta($post_id, '_stock2', true),
-            'primary_prices'   => [
-                'regular' => get_post_meta($post_id, '_regular_price', true),
-                'sale'    => get_post_meta($post_id, '_sale_price', true),
-            ],
-            'secondary_prices' => [
-                'price2'      => get_post_meta($post_id, '_price2', true),
-                'sale_price2' => get_post_meta($post_id, '_sale_price2', true),
-            ],
-            'locations'        => [
-                'primary'   => apply_filters('gn_asl_primary_location_name', 'Primary'),
-                'secondary' => apply_filters('gn_asl_secondary_location_name', 'Secondary'),
-            ],
-        ];
-        self::log($is_update ? 'Updated existing by SKU.' : 'Created new item.', $data);
+        self::log_meta_snapshot(
+            $post_id,
+            $is_update ? 'Updated existing product.' : 'Created new product.',
+            [
+                'import_id' => (int) $import_id,
+                'is_update' => (bool) $is_update,
+            ]
+        );
     }
 
     /** pmxi_article_data — force WPAI to update (not create) when SKU exists. */
@@ -154,6 +166,27 @@ final class Module {
                     break;
                 }
             }
+        }
+
+        if ($sku !== '') {
+            $fields = [];
+            foreach (['_stock','_stock2','_regular_price','_sale_price','_price2','_sale_price2'] as $key) {
+                if (isset($article_data['meta_input'][$key])) {
+                    $fields[$key] = $article_data['meta_input'][$key];
+                } elseif (isset($article_data['post_meta']) && is_array($article_data['post_meta'])) {
+                    foreach ($article_data['post_meta'] as $row) {
+                        if (!empty($row['key']) && $row['key'] === $key) {
+                            $fields[$key] = $row['value'] ?? '';
+                            break;
+                        }
+                    }
+                }
+            }
+            self::log('Import data received.', [
+                'sku'       => $sku,
+                'import_id' => (int) $import_id,
+                'fields'    => $fields,
+            ]);
         }
 
         if ($sku !== '' && function_exists('wc_get_product_id_by_sku')) {
@@ -192,17 +225,43 @@ final class Module {
 
     /** Copy GN ASL stock/location meta. */
     private static function copy_location_meta(int $from_id, int $to_id) : void {
+        $sku = get_post_meta($from_id, '_sku', true);
         foreach (['_stock','_stock2','_location2_name'] as $key) {
-            $val = get_post_meta($from_id, $key, true);
-            if ($val !== '') update_post_meta($to_id, $key, $val);
+            $val     = get_post_meta($from_id, $key, true);
+            $updated = false;
+            if ($val !== '') {
+                update_post_meta($to_id, $key, $val);
+                $updated = true;
+            }
+            self::log('Meta copy.', [
+                'sku'     => $sku,
+                'from'    => (int) $from_id,
+                'to'      => (int) $to_id,
+                'key'     => $key,
+                'value'   => $val,
+                'updated' => $updated,
+            ]);
         }
     }
 
     /** Copy pricing (both locations). */
     private static function copy_price_meta(int $from_id, int $to_id) : void {
+        $sku = get_post_meta($from_id, '_sku', true);
         foreach (['_regular_price','_sale_price','_price','_price2','_sale_price2'] as $key) {
-            $val = get_post_meta($from_id, $key, true);
-            if ($val !== '') update_post_meta($to_id, $key, $val);
+            $val     = get_post_meta($from_id, $key, true);
+            $updated = false;
+            if ($val !== '') {
+                update_post_meta($to_id, $key, $val);
+                $updated = true;
+            }
+            self::log('Meta copy.', [
+                'sku'     => $sku,
+                'from'    => (int) $from_id,
+                'to'      => (int) $to_id,
+                'key'     => $key,
+                'value'   => $val,
+                'updated' => $updated,
+            ]);
         }
     }
 
@@ -217,6 +276,7 @@ final class Module {
         $secondary = (int) get_post_meta($post_id, '_stock2', true);
         $sum       = $primary + $secondary;
         $status    = ($sum > 0) ? 'instock' : 'outofstock';
+        $sku       = get_post_meta($post_id, '_sku', true);
 
         update_post_meta($post_id, '_manage_stock', 'yes');
 
@@ -231,7 +291,8 @@ final class Module {
         }
 
         self::log('Synced combined stock status.', [
-            'post_id'   => $post_id,
+            'post_id'   => (int) $post_id,
+            'sku'       => $sku,
             'primary'   => $primary,
             'secondary' => $secondary,
             'sum'       => $sum,
