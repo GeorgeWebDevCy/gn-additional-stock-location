@@ -22,7 +22,8 @@ final class Module {
         // Soft dependency on WP All Import: hooks won’t fire if WPAI isn’t active.
         // Use a later priority so WooCommerce and other add-ons finish updating
         // meta before we read it (fixes empty values in our log/stock sync).
-        add_action('pmxi_saved_post', [__CLASS__, 'on_saved_post'], 20, 4);
+        add_action('pmxi_saved_post', [__CLASS__, 'on_saved_post'], 9999, 4);
+        add_action('pmxi_after_post_import', [__CLASS__, 'after_post_import'], 10, 1);
         add_filter('pmxi_article_data', [__CLASS__, 'force_update_when_sku_exists'], 10, 2);
 
         // Admin log page.
@@ -56,22 +57,53 @@ final class Module {
         @file_put_contents(self::log_path(), $line, FILE_APPEND);
     }
 
+    /**
+     * Get prices, stock quantity and stock status via WooCommerce getters with
+     * a post meta fallback. Using the CRUD layer ensures we see the values that
+     * WC/WPAI have just written even if the meta cache hasn't been updated yet.
+     */
+    private static function get_wc_prices_and_stock(int $post_id) : array {
+        $p = function_exists('wc_get_product') ? wc_get_product($post_id) : null;
+        return [
+            'regular_price' => $p ? $p->get_regular_price()  : get_post_meta($post_id, '_regular_price', true),
+            'sale_price'    => $p ? $p->get_sale_price()     : get_post_meta($post_id, '_sale_price', true),
+            'stock'         => $p ? $p->get_stock_quantity() : get_post_meta($post_id, '_stock', true),
+            'status'        => $p ? $p->get_stock_status()   : get_post_meta($post_id, '_stock_status', true),
+        ];
+    }
+
     /** Log a snapshot of key meta values for a post. */
     private static function log_meta_snapshot(int $post_id, string $msg, array $extra = []) : void {
+        $wc = self::get_wc_prices_and_stock($post_id);
         $data = [
             'post_id' => (int) $post_id,
             'sku'     => get_post_meta($post_id, '_sku', true),
             'values'  => [
-                '_stock'         => get_post_meta($post_id, '_stock', true),
+                '_stock'         => $wc['stock'],
                 '_stock2'        => get_post_meta($post_id, '_stock2', true),
-                '_regular_price' => get_post_meta($post_id, '_regular_price', true),
-                '_sale_price'    => get_post_meta($post_id, '_sale_price', true),
+                '_regular_price' => $wc['regular_price'],
+                '_sale_price'    => $wc['sale_price'],
                 '_price2'        => get_post_meta($post_id, '_price2', true),
                 '_sale_price2'   => get_post_meta($post_id, '_sale_price2', true),
             ],
-        ];
-        $data = array_merge($data, $extra);
+        ] + $extra;
         self::log($msg, $data);
+    }
+
+    /** Update post meta only when the imported value is a non-empty scalar. */
+    private static function safe_update_meta(int $to, string $key, $value) : bool {
+        if ($value === '' || $value === null || (is_array($value) && $value === [])) {
+            self::log('Meta copy skipped (empty).', ['to' => $to, 'key' => $key, 'value' => $value]);
+            return false;
+        }
+        update_post_meta($to, $key, $value);
+        self::log('Meta copy.', ['to' => $to, 'key' => $key, 'value' => $value, 'updated' => true]);
+        return true;
+    }
+
+    /** pmxi_after_post_import — placeholder for any after-import logic. */
+    public static function after_post_import($import_id) : void {
+        // Hook available for a second pass after imports if needed.
     }
 
     /**
@@ -129,8 +161,10 @@ final class Module {
 
             self::log($msg, $ctx);
 
-            self::copy_location_meta($post_id, $existing_id);
-            self::copy_price_meta($post_id, $existing_id);
+            foreach (['_stock','_stock2','_regular_price','_sale_price','_price2','_sale_price2','_location2_name'] as $key) {
+                $val = get_post_meta($post_id, $key, true);
+                self::safe_update_meta($existing_id, $key, $val);
+            }
             self::sync_stock_status_from_locations($existing_id);
 
             self::log_meta_snapshot($existing_id, 'Existing product after merge.', ['import_id' => (int) $import_id]);
@@ -225,48 +259,6 @@ final class Module {
         return $article_data;
     }
 
-    /** Copy GN ASL stock/location meta. */
-    private static function copy_location_meta(int $from_id, int $to_id) : void {
-        $sku = get_post_meta($from_id, '_sku', true);
-        foreach (['_stock','_stock2','_location2_name'] as $key) {
-            $val     = get_post_meta($from_id, $key, true);
-            $updated = false;
-            if ($val !== '') {
-                update_post_meta($to_id, $key, $val);
-                $updated = true;
-            }
-            self::log('Meta copy.', [
-                'sku'     => $sku,
-                'from'    => (int) $from_id,
-                'to'      => (int) $to_id,
-                'key'     => $key,
-                'value'   => $val,
-                'updated' => $updated,
-            ]);
-        }
-    }
-
-    /** Copy pricing (both locations). */
-    private static function copy_price_meta(int $from_id, int $to_id) : void {
-        $sku = get_post_meta($from_id, '_sku', true);
-        foreach (['_regular_price','_sale_price','_price','_price2','_sale_price2'] as $key) {
-            $val     = get_post_meta($from_id, $key, true);
-            $updated = false;
-            if ($val !== '') {
-                update_post_meta($to_id, $key, $val);
-                $updated = true;
-            }
-            self::log('Meta copy.', [
-                'sku'     => $sku,
-                'from'    => (int) $from_id,
-                'to'      => (int) $to_id,
-                'key'     => $key,
-                'value'   => $val,
-                'updated' => $updated,
-            ]);
-        }
-    }
-
     /**
      * Combined stock status:
      * - Manage stock = yes
@@ -274,7 +266,7 @@ final class Module {
      * - Ensure secondary location name defaults to "Golden Sneakers"
      */
     private static function sync_stock_status_from_locations(int $post_id) : void {
-        $primary   = (int) get_post_meta($post_id, '_stock', true);
+        $primary   = (int) (self::get_wc_prices_and_stock($post_id)['stock'] ?? 0);
         $secondary = (int) get_post_meta($post_id, '_stock2', true);
         $sum       = $primary + $secondary;
         $status    = ($sum > 0) ? 'instock' : 'outofstock';
