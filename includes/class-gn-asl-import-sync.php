@@ -15,6 +15,13 @@ final class Module {
     const LOG_MAX   = 5242880; // 5MB
     const LOG_FILE  = 'gn-asl-import.log'; // Stored in wp-content/uploads/
 
+    /**
+     * Cache of the latest fields received from WP All Import keyed by SKU.
+     *
+     * @var array<string,array<string,mixed>>
+     */
+    private static $import_cache = [];
+
     public static function boot() {
         // Only run if WooCommerce is present.
         if ( ! function_exists('wc_get_product_id_by_sku') ) return;
@@ -88,6 +95,41 @@ final class Module {
             ],
         ] + $extra;
         self::log($msg, $data);
+    }
+
+    /**
+     * Compare saved meta values with the data received from WP All Import and
+     * log any mismatches so we can tell if the import was applied correctly.
+     */
+    private static function verify_import_values(int $post_id) : void {
+        $sku = get_post_meta($post_id, '_sku', true);
+        if ($sku === '' || !isset(self::$import_cache[$sku])) return;
+
+        $expected = self::$import_cache[$sku];
+        $wc       = self::get_wc_prices_and_stock($post_id);
+        $actual   = [
+            '_stock'         => (string) ($wc['stock'] ?? ''),
+            '_stock2'        => (string) get_post_meta($post_id, '_stock2', true),
+            '_regular_price' => (string) ($wc['regular_price'] ?? ''),
+            '_sale_price'    => (string) ($wc['sale_price'] ?? ''),
+            '_price2'        => (string) get_post_meta($post_id, '_price2', true),
+            '_sale_price2'   => (string) get_post_meta($post_id, '_sale_price2', true),
+        ];
+
+        foreach ($expected as $key => $exp) {
+            $act = $actual[$key] ?? '';
+            if ((string) $exp !== (string) $act) {
+                self::log('Imported field mismatch.', [
+                    'post_id' => (int) $post_id,
+                    'sku'     => $sku,
+                    'field'   => $key,
+                    'feed'    => $exp,
+                    'saved'   => $act,
+                ]);
+            }
+        }
+
+        unset(self::$import_cache[$sku]);
     }
 
     /** Update post meta only when the imported value is a non-empty scalar. */
@@ -168,6 +210,7 @@ final class Module {
             self::sync_stock_status_from_locations($existing_id);
 
             self::log_meta_snapshot($existing_id, 'Existing product after merge.', ['import_id' => (int) $import_id]);
+            self::verify_import_values($existing_id);
 
             wp_trash_post($post_id);
 
@@ -187,6 +230,7 @@ final class Module {
                 'is_update' => (bool) $is_update,
             ]
         );
+        self::verify_import_values($post_id);
     }
 
     /** pmxi_article_data — force WPAI to update (not create) when SKU exists. */
@@ -223,6 +267,8 @@ final class Module {
                 'import_id' => (int) $import_id,
                 'fields'    => $fields,
             ]);
+
+            self::$import_cache[$sku] = $fields;
         }
 
         if ($sku !== '' && function_exists('wc_get_product_id_by_sku')) {
