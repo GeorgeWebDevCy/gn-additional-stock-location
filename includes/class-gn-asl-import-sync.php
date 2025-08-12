@@ -20,7 +20,9 @@ final class Module {
         if ( ! function_exists('wc_get_product_id_by_sku') ) return;
 
         // Soft dependency on WP All Import: hooks won’t fire if WPAI isn’t active.
-        add_action('pmxi_saved_post', [__CLASS__, 'on_saved_post'], 10, 4);
+        // Use a later priority so WooCommerce and other add-ons finish updating
+        // meta before we read it (fixes empty values in our log/stock sync).
+        add_action('pmxi_saved_post', [__CLASS__, 'on_saved_post'], 20, 4);
         add_filter('pmxi_article_data', [__CLASS__, 'force_update_when_sku_exists'], 10, 2);
 
         // Admin log page.
