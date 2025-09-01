@@ -3,7 +3,7 @@ Contributors: yourname
 Tags: woocommerce, inventory, stock
 Requires at least: 5.0
 Tested up to: 6.5
-Stable tag: 1.9.23
+Stable tag: 1.9.24
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -21,6 +21,9 @@ When the secondary location is active you can also specify a **Golden Sneakers S
 3. Edit a product to enter values for **Golden Sneakers Stock** and **Golden Sneakers Price**. Variations have their own fields as well.
 
 == Changelog ==
+= 1.9.24 =
+* Bump version to 1.9.24.
+
 = 1.9.23 =
 * Treat stock, quantity and prices separately per location without summing totals.
 
