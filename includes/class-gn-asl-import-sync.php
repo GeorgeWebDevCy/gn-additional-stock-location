@@ -3,7 +3,7 @@
  * GN ASL + WP All Import Sync & Logger (module)
  * - Prevents duplicate creation when SKU already exists (forces update)
  * - Updates stock/prices for primary/secondary locations
- * - Syncs combined stock status
+ * - Syncs stock status based on the active location
  * - Detailed admin log with Clear + 5MB rotation
  */
 
@@ -453,17 +453,22 @@ final class Module {
     }
 
     /**
-     * Combined stock status:
+     * Sync stock status based on the selected location:
      * - Manage stock = yes
-     * - instock if (_stock + _stock2) > 0, else outofstock
+     * - instock if the active location has stock, else outofstock
      * - Ensure secondary location name defaults to "Golden Sneakers"
      */
     private static function sync_stock_status_from_locations(int $post_id) : void {
         $primary   = (int) get_post_meta($post_id, '_stock', true);
         $secondary = (int) get_post_meta($post_id, '_stock2', true);
-        $sum       = $primary + $secondary;
-        $status    = ($sum > 0) ? 'instock' : 'outofstock';
-        $sku       = get_post_meta($post_id, '_sku', true);
+        $location  = get_post_meta($post_id, '_location2_name', true);
+        if ($location === GN_ASL_SECONDARY_LOCATION_NAME) {
+            $stock = $secondary;
+        } else {
+            $stock = $primary;
+        }
+        $status = ($stock > 0) ? 'instock' : 'outofstock';
+        $sku    = get_post_meta($post_id, '_sku', true);
 
         update_post_meta($post_id, '_manage_stock', 'yes');
 
@@ -477,12 +482,13 @@ final class Module {
             update_post_meta($post_id, '_location2_name', apply_filters('gn_asl_secondary_location_name', 'Golden Sneakers'));
         }
 
-        self::log('Synced combined stock status.', [
+        self::log('Synced stock status for active location.', [
             'post_id'   => (int) $post_id,
             'sku'       => $sku,
             'primary'   => $primary,
             'secondary' => $secondary,
-            'sum'       => $sum,
+            'location'  => $location,
+            'stock'     => $stock,
             'status'    => $status
         ]);
     }

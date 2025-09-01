@@ -2,7 +2,7 @@
 /**
  * Plugin Name: GN Additional Stock Location
  * Description: Adds a second stock location field to WooCommerce products and manages stock during checkout.
- * Version: 1.9.22
+ * Version: 1.9.23
  * Author: George Nicolaou
  */
 
@@ -397,42 +397,44 @@ function gn_asl_output_location_name_on_product() {
 }
  
 /**
- * Get total stock across primary and secondary locations.
+ * Get stock for the active location.
  *
  * @param int $product_id Product ID.
- * @return int Total stock.
+ * @return int Stock quantity for the selected location.
  */
-function gn_asl_get_total_stock( $product_id ) {
-   $primary   = (int) get_post_meta( $product_id, '_stock', true );
-   $secondary = (int) get_post_meta( $product_id, '_stock2', true );
-   return $primary + $secondary;
+function gn_asl_get_location_stock( $product_id ) {
+   $location = get_post_meta( $product_id, '_location2_name', true );
+   if ( GN_ASL_SECONDARY_LOCATION_NAME === $location ) {
+      return (int) get_post_meta( $product_id, '_stock2', true );
+   }
+   return (int) get_post_meta( $product_id, '_stock', true );
 }
 
-add_filter( 'woocommerce_product_get_stock_quantity', 'gn_asl_get_overall_stock_quantity', 9999, 2 );
+add_filter( 'woocommerce_product_get_stock_quantity', 'gn_asl_get_stock_quantity', 9999, 2 );
 
 /**
- * Combine stock from both locations when displaying stock quantity.
+ * Return stock quantity for the active location.
  *
  * @param int       $value   Original stock quantity from WooCommerce.
  * @param WC_Product $product Product being queried.
- * @return int Total stock across both locations.
+ * @return int Stock quantity for the current location.
  */
-function gn_asl_get_overall_stock_quantity( $value, $product ) {
-   return gn_asl_get_total_stock( $product->get_id() );
+function gn_asl_get_stock_quantity( $value, $product ) {
+   return gn_asl_get_location_stock( $product->get_id() );
 }
 
-add_filter( 'woocommerce_product_get_stock_status', 'gn_asl_get_overall_stock_status', 9999, 2 );
+add_filter( 'woocommerce_product_get_stock_status', 'gn_asl_get_stock_status', 9999, 2 );
 
 /**
- * Determine stock status based on the combined stock quantity.
+ * Determine stock status based on the active location's quantity.
  *
  * @param string     $status  Original stock status.
  * @param WC_Product $product Product being checked.
- * @return string "instock" or "outofstock" based on total stock.
+ * @return string "instock" or "outofstock" based on location stock.
  */
-function gn_asl_get_overall_stock_status( $status, $product ) {
+function gn_asl_get_stock_status( $status, $product ) {
    if ( ! $product->managing_stock() ) return $status;
-   $stock = gn_asl_get_total_stock( $product->get_id() );
+   $stock = gn_asl_get_location_stock( $product->get_id() );
    return $stock > 0 ? 'instock' : 'outofstock';
 }
 
@@ -446,15 +448,15 @@ add_filter( 'woocommerce_product_is_on_sale', 'gn_asl_second_price_is_on_sale', 
 add_filter( 'woocommerce_product_variation_is_on_sale', 'gn_asl_second_price_is_on_sale', 10, 2 );
 
 /**
- * Use the price from location two when the primary location is out of stock.
+ * Use the price from the active location.
  *
  * @param string     $price   Current price determined by WooCommerce.
  * @param WC_Product $product Product being priced.
- * @return string New price if location one is empty, otherwise the original.
+ * @return string New price based on the selected location.
  */
 function gn_asl_maybe_use_second_price( $price, $product ) {
-   $primary_stock = (int) get_post_meta( $product->get_id(), '_stock', true );
-   if ( $primary_stock <= 0 ) {
+   $location = get_post_meta( $product->get_id(), '_location2_name', true );
+   if ( GN_ASL_SECONDARY_LOCATION_NAME === $location ) {
       $sale_price2  = get_post_meta( $product->get_id(), '_sale_price2', true );
       $regular2     = get_post_meta( $product->get_id(), '_price2', true );
       $filter       = current_filter();
@@ -485,8 +487,8 @@ function gn_asl_maybe_use_second_price( $price, $product ) {
  * @return bool True if the second location has a sale price when active.
  */
 function gn_asl_second_price_is_on_sale( $on_sale, $product ) {
-   $primary_stock = (int) get_post_meta( $product->get_id(), '_stock', true );
-   if ( $primary_stock <= 0 ) {
+   $location = get_post_meta( $product->get_id(), '_location2_name', true );
+   if ( GN_ASL_SECONDARY_LOCATION_NAME === $location ) {
       $sale_price2 = get_post_meta( $product->get_id(), '_sale_price2', true );
       return '' !== $sale_price2;
    }
@@ -496,11 +498,7 @@ function gn_asl_second_price_is_on_sale( $on_sale, $product ) {
 add_filter( 'woocommerce_payment_complete_reduce_order_stock', 'gn_asl_maybe_reduce_second_stock', 9999, 2 );
 
 /**
- * Reduce stock levels in both locations when an order is completed.
- *
- * The default WooCommerce stock reduction only handles the primary location.
- * This function ensures that any remaining quantity is deducted from the
- * secondary stock location.
+ * Reduce stock levels for the active location when an order is completed.
  *
  * @param bool $reduce   Whether WooCommerce should reduce stock automatically.
  * @param int  $order_id ID of the processed order.
@@ -509,7 +507,6 @@ add_filter( 'woocommerce_payment_complete_reduce_order_stock', 'gn_asl_maybe_red
 function gn_asl_maybe_reduce_second_stock( $reduce, $order_id ) {
    gn_asl_debug_log( __FUNCTION__ . " called for order {$order_id}." );
    $order = wc_get_order( $order_id );
-   $atleastastock2change = false;
    foreach ( $order->get_items() as $item ) {
       if ( ! $item->is_type( 'line_item' ) ) {
          continue;
@@ -520,37 +517,21 @@ function gn_asl_maybe_reduce_second_stock( $reduce, $order_id ) {
          continue;
       }
       $qty = apply_filters( 'woocommerce_order_item_quantity', $item->get_quantity(), $order, $item );
-      $stock1 = (int) get_post_meta( $product->get_id(), '_stock', true );
-      if ( $qty <= $stock1 ) continue;
-      $atleastastock2change = true;
-   }
-   if ( ! $atleastastock2change ) {
-      gn_asl_debug_log( __FUNCTION__ . ' no secondary stock changes required.' );
-      return $reduce;
-   }
-   foreach ( $order->get_items() as $item ) {
-      if ( ! $item->is_type( 'line_item' ) ) {
-         continue;
-      }
-      $product = $item->get_product();
-      $item_stock_reduced = $item->get_meta( '_reduced_stock', true );
-      if ( $item_stock_reduced || ! $product || ! $product->managing_stock() ) {
-         continue;
-      }
       $item_name = $product->get_formatted_name();
-      $qty = apply_filters( 'woocommerce_order_item_quantity', $item->get_quantity(), $order, $item );
-      $stock1 = (int) get_post_meta( $product->get_id(), '_stock', true );
-      $stock2 = (int) get_post_meta( $product->get_id(), '_stock2', true );
-      if ( $qty <= $stock1 ) {
-         wc_update_product_stock( $product, $qty, 'decrease' );
-         $order->add_order_note( sprintf( 'Reduced stock for item "%s"; Stock 1: "%s" to "%s".', $item_name, $stock1, $stock1 - $qty ) );
-      } else {
-         $newstock2 = $stock2 - ( $qty - $stock1 );
-         wc_update_product_stock( $product, $stock1, 'decrease' );
+      $location = get_post_meta( $product->get_id(), '_location2_name', true );
+      if ( GN_ASL_SECONDARY_LOCATION_NAME === $location ) {
+         $stock2    = (int) get_post_meta( $product->get_id(), '_stock2', true );
+         $newstock2 = max( 0, $stock2 - $qty );
          update_post_meta( $product->get_id(), '_stock2', $newstock2 );
          $item->add_meta_data( '_reduced_stock', $qty, true );
          $item->save();
-         $order->add_order_note( sprintf( 'Reduced stock for item "%s"; Stock 1: "%s" to "0" and Stock 2: "%s" to "%s".', $item_name, $stock1, $stock2, $newstock2 ) );
+         $order->add_order_note( sprintf( 'Reduced stock for item "%s"; Stock 2: "%s" to "%s".', $item_name, $stock2, $newstock2 ) );
+      } else {
+         $stock1 = (int) get_post_meta( $product->get_id(), '_stock', true );
+         wc_update_product_stock( $product, $qty, 'decrease' );
+         $item->add_meta_data( '_reduced_stock', $qty, true );
+         $item->save();
+         $order->add_order_note( sprintf( 'Reduced stock for item "%s"; Stock 1: "%s" to "%s".', $item_name, $stock1, $stock1 - $qty ) );
       }
    }
    $order->get_data_store()->set_stock_reduced( $order_id, true );
