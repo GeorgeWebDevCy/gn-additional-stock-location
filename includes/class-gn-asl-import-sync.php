@@ -410,6 +410,38 @@ final class Module {
         }
 
         echo '<div class="wrap"><h1>ASL Import Log</h1>';
+
+        $issues   = [];
+        $uploads  = wp_upload_dir();
+        $log_file = self::log_path();
+
+        if ( ! defined('WP_DEBUG') || ! WP_DEBUG ) {
+            $issues[] = 'WP_DEBUG is disabled. gn_asl_debug_log() will not output messages.';
+        }
+
+        if ( ! is_dir( $uploads['basedir'] ) ) {
+            $issues[] = 'Uploads directory missing: ' . $uploads['basedir'];
+        } elseif ( ! is_writable( $uploads['basedir'] ) ) {
+            $issues[] = 'Uploads directory is not writable: ' . $uploads['basedir'];
+        } elseif ( file_exists( $log_file ) && ! is_writable( $log_file ) ) {
+            $issues[] = 'Log file is not writable: ' . $log_file;
+        }
+
+        if ( did_action( 'pmxi_saved_post' ) === 0 ) {
+            $issues[] = 'WP All Import hooks have not fired. Ensure an import runs with ID ' . self::IMPORT_ID . '.';
+        }
+
+        if ( empty( $issues ) ) {
+            echo '<div class="notice notice-success"><p>No issues detected.</p></div>';
+            gn_asl_debug_log( 'test message' );
+        } else {
+            echo '<div class="notice notice-warning"><p>The following checks may help diagnose missing log entries:</p><ul>';
+            foreach ( $issues as $issue ) {
+                echo '<li>' . esc_html( $issue ) . '</li>';
+            }
+            echo '</ul></div>';
+        }
+
         echo '<form method="post" style="margin-bottom:12px;">';
         wp_nonce_field('gnasl_clear_log');
         submit_button('Clear Log', 'delete', 'gnasl_clear_log', false);
