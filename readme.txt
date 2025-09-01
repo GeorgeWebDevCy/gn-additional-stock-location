@@ -3,7 +3,7 @@ Contributors: yourname
 Tags: woocommerce, inventory, stock
 Requires at least: 5.0
 Tested up to: 6.5
-Stable tag: 1.9.13
+Stable tag: 1.9.14
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -21,6 +21,9 @@ When the primary location is empty you can also specify a **Golden Sneakers Sale
 3. Edit a product to enter values for **Golden Sneakers Stock** and **Golden Sneakers Price**. Variations have their own fields as well.
 
 == Changelog ==
+= 1.9.14 =
+* Ensure import log file is created even if the uploads directory is missing.
+
 = 1.9.13 =
 * Restrict sync to WP All Import ID 3 and format log entries into readable blocks.
 
