@@ -2,7 +2,7 @@
 /**
  * Plugin Name: GN Additional Stock Location
  * Description: Adds a second stock location field to WooCommerce products and manages stock during checkout.
- * Version: 1.9.11
+ * Version: 1.9.12
  * Author: George Nicolaou
  */
 
@@ -187,7 +187,11 @@ function gn_asl_save_additional_stock( $product_id ) {
     if ( 'product' === $typenow ) {
       if ( defined( 'DOING_AUTOSAVE' ) && DOING_AUTOSAVE ) return;
       if ( isset( $_POST['_stock2'] ) ) {
-         update_post_meta( $product_id, '_stock2', $_POST['_stock2'] );
+         if ( ! function_exists( 'wc_stock_amount' ) ) {
+            return;
+         }
+         $qty = wc_stock_amount( wp_unslash( $_POST['_stock2'] ) );
+         update_post_meta( $product_id, '_stock2', $qty );
       }
    }
 }
