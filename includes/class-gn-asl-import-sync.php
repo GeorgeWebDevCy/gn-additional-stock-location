@@ -100,17 +100,19 @@ final class Module {
     }
 
     /**
-     * Get prices, stock quantity and stock status via WooCommerce getters with
-     * a post meta fallback. Using the CRUD layer ensures we see the values that
-     * WC/WPAI have just written even if the meta cache hasn't been updated yet.
+     * Get prices, stock quantity and stock status directly from post meta.
+     *
+     * Calling WooCommerce's getter methods here would trigger our own
+     * `woocommerce_product_get_stock_quantity` filter, causing secondary stock
+     * to be double-counted. Reading the raw meta values avoids that recursion
+     * and ensures the primary `_stock` value is used as-is.
      */
     private static function get_wc_prices_and_stock(int $post_id) : array {
-        $p = function_exists('wc_get_product') ? wc_get_product($post_id) : null;
         return [
-            'regular_price' => $p ? $p->get_regular_price()  : get_post_meta($post_id, '_regular_price', true),
-            'sale_price'    => $p ? $p->get_sale_price()     : get_post_meta($post_id, '_sale_price', true),
-            'stock'         => $p ? $p->get_stock_quantity() : get_post_meta($post_id, '_stock', true),
-            'status'        => $p ? $p->get_stock_status()   : get_post_meta($post_id, '_stock_status', true),
+            'regular_price' => get_post_meta($post_id, '_regular_price', true),
+            'sale_price'    => get_post_meta($post_id, '_sale_price', true),
+            'stock'         => get_post_meta($post_id, '_stock', true),
+            'status'        => get_post_meta($post_id, '_stock_status', true),
         ];
     }
 
@@ -457,7 +459,7 @@ final class Module {
      * - Ensure secondary location name defaults to "Golden Sneakers"
      */
     private static function sync_stock_status_from_locations(int $post_id) : void {
-        $primary   = (int) (self::get_wc_prices_and_stock($post_id)['stock'] ?? 0);
+        $primary   = (int) get_post_meta($post_id, '_stock', true);
         $secondary = (int) get_post_meta($post_id, '_stock2', true);
         $sum       = $primary + $secondary;
         $status    = ($sum > 0) ? 'instock' : 'outofstock';
