@@ -30,6 +30,13 @@ final class Module {
      */
     private static $last_block = null;
 
+    /**
+     * Stores the current WP All Import ID when hooks no longer supply it.
+     *
+     * @var int
+     */
+    private static $current_import_id = 0;
+
     public static function boot() {
         // Only run if WooCommerce is present.
         if ( ! function_exists('wc_get_product_id_by_sku') ) return;
@@ -37,6 +44,7 @@ final class Module {
         // Soft dependency on WP All Import: hooks won’t fire if WPAI isn’t active.
         // Use a later priority so WooCommerce and other add-ons finish updating
         // meta before we read it (fixes empty values in our log/stock sync).
+        add_action('pmxi_before_post_import', [__CLASS__, 'capture_import_id'], 10, 1);
         add_action('pmxi_saved_post', [__CLASS__, 'on_saved_post'], 9999, 4);
         add_action('pmxi_after_post_import', [__CLASS__, 'after_post_import'], 10, 1);
         add_filter('pmxi_article_data', [__CLASS__, 'force_update_when_sku_exists'], 10, 2);
@@ -146,7 +154,7 @@ final class Module {
         foreach ($expected as $key => $exp) {
             $act = $actual[$key] ?? '';
             if ((string) $exp !== (string) $act) {
-                self::log('Imported field mismatch.', [
+        self::log('Imported field mismatch.', [
                     'post_id' => (int) $post_id,
                     'sku'     => $sku,
                     'field'   => $key,
@@ -157,6 +165,11 @@ final class Module {
         }
 
         unset(self::$import_cache[$sku]);
+    }
+
+    /** Capture the current import ID before each post import. */
+    public static function capture_import_id($import_id) : void {
+        self::$current_import_id = (int) $import_id;
     }
 
     /** Update post meta only when the imported value is a non-empty scalar. */
@@ -172,6 +185,7 @@ final class Module {
 
     /** pmxi_after_post_import — placeholder for any after-import logic. */
     public static function after_post_import($import_id) : void {
+        self::$current_import_id = 0;
         if ((int) $import_id !== self::IMPORT_ID) return;
         // Hook available for a second pass after imports if needed.
     }
@@ -184,7 +198,8 @@ final class Module {
      * with older versions that still provided it.
      */
     public static function on_saved_post($post_id, $xml, $is_update, $import_id = 0) : void {
-        if ((int) $import_id !== self::IMPORT_ID) return;
+        $import_id = (int) ($import_id ?: self::$current_import_id);
+        if ($import_id !== self::IMPORT_ID) return;
         $sku = get_post_meta($post_id, '_sku', true);
         if (empty($sku)) {
             self::log('Saved post has no SKU; skipping.', compact('post_id','import_id','is_update'));
