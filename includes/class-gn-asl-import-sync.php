@@ -194,7 +194,8 @@ final class Module {
             } elseif (isset($xml->sizes)) {
                 foreach ($xml->sizes->children() as $item) {
                     if (isset($item->available_quantity)) {
-                        $secondary += (int) $item->available_quantity;
+                        $secondary = (int) $item->available_quantity;
+                        break;
                     }
                 }
             }
