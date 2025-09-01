@@ -343,9 +343,12 @@ add_action( 'woocommerce_product_meta_end', 'gn_asl_output_location_name_on_prod
  * Display location name on the single product page.
  */
 function gn_asl_output_location_name_on_product() {
-   global $product;
-   $name = get_post_meta( $product->get_id(), '_location2_name', true ) ?: GN_ASL_PRIMARY_LOCATION_NAME;
-   echo '<p class="gn-location-name">' . esc_html__( 'Location:', 'gn-additional-stock-location' ) . ' ' . esc_html( $name ) . '</p>';
+    global $product;
+    $name = get_post_meta( $product->get_id(), '_location2_name', true ) ?: GN_ASL_PRIMARY_LOCATION_NAME;
+    echo '<p class="gn-location-name">' .
+        esc_html__( 'Location:', 'gn-additional-stock-location' ) . ' ' .
+        esc_html( $name ) .
+        '</p>';
 }
  
 /**
