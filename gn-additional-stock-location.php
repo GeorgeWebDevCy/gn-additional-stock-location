@@ -2,7 +2,7 @@
 /**
  * Plugin Name: GN Additional Stock Location
  * Description: Adds a second stock location field to WooCommerce products and manages stock during checkout.
- * Version: 1.9.14
+ * Version: 1.9.15
  * Author: George Nicolaou
  */
 
@@ -25,6 +25,18 @@ $myUpdateChecker->setBranch('main');
 
 define( 'GN_ASL_PRIMARY_LOCATION_NAME', apply_filters( 'gn_asl_primary_location_name', 'Sneakfreaks' ) );
 define( 'GN_ASL_SECONDARY_LOCATION_NAME', apply_filters( 'gn_asl_secondary_location_name', 'Golden Sneakers' ) );
+
+/**
+ * Log debug messages when WP_DEBUG is enabled.
+ *
+ * @param string $message Message to log.
+ * @return void
+ */
+function gn_asl_debug_log( $message ) {
+    if ( defined( 'WP_DEBUG' ) && WP_DEBUG ) {
+        error_log( 'GN ASL: ' . $message );
+    }
+}
 
 add_action( 'woocommerce_product_options_stock', 'gn_asl_additional_stock_location' );
 add_action( 'woocommerce_variation_options_inventory', 'gn_asl_additional_stock_location_variation', 10, 3 );
@@ -183,11 +195,16 @@ add_action( 'woocommerce_save_product_variation', 'gn_asl_save_location_name_var
  * @return void
  */
 function gn_asl_save_additional_stock( $product_id ) {
+    gn_asl_debug_log( __FUNCTION__ . " called for product {$product_id}." );
     global $typenow;
     if ( 'product' === $typenow ) {
-      if ( defined( 'DOING_AUTOSAVE' ) && DOING_AUTOSAVE ) return;
+      if ( defined( 'DOING_AUTOSAVE' ) && DOING_AUTOSAVE ) {
+         gn_asl_debug_log( __FUNCTION__ . ' aborted due to autosave.' );
+         return;
+      }
       if ( isset( $_POST['_stock2'] ) ) {
          if ( ! function_exists( 'wc_stock_amount' ) ) {
+            gn_asl_debug_log( __FUNCTION__ . ' missing wc_stock_amount.' );
             return;
          }
          $qty = wc_stock_amount( wp_unslash( $_POST['_stock2'] ) );
@@ -204,7 +221,11 @@ function gn_asl_save_additional_stock( $product_id ) {
  * @return void
  */
 function gn_asl_save_additional_stock_variation( $variation_id, $i ) {
-   if ( defined( 'DOING_AUTOSAVE' ) && DOING_AUTOSAVE ) return;
+   gn_asl_debug_log( __FUNCTION__ . " called for variation {$variation_id}." );
+   if ( defined( 'DOING_AUTOSAVE' ) && DOING_AUTOSAVE ) {
+      gn_asl_debug_log( __FUNCTION__ . ' aborted due to autosave.' );
+      return;
+   }
    if ( isset( $_POST['variable_stock2'][ $i ] ) ) {
       update_post_meta( $variation_id, '_stock2', wc_stock_amount( wp_unslash( $_POST['variable_stock2'][ $i ] ) ) );
    }
@@ -217,9 +238,13 @@ function gn_asl_save_additional_stock_variation( $variation_id, $i ) {
  * @return void
  */
 function gn_asl_save_additional_price( $product_id ) {
+    gn_asl_debug_log( __FUNCTION__ . " called for product {$product_id}." );
     global $typenow;
     if ( 'product' === $typenow ) {
-      if ( defined( 'DOING_AUTOSAVE' ) && DOING_AUTOSAVE ) return;
+      if ( defined( 'DOING_AUTOSAVE' ) && DOING_AUTOSAVE ) {
+         gn_asl_debug_log( __FUNCTION__ . ' aborted due to autosave.' );
+         return;
+      }
       if ( isset( $_POST['_price2'] ) ) {
          update_post_meta( $product_id, '_price2', wc_clean( wp_unslash( $_POST['_price2'] ) ) );
       }
@@ -234,7 +259,11 @@ function gn_asl_save_additional_price( $product_id ) {
  * @return void
  */
 function gn_asl_save_additional_price_variation( $variation_id, $i ) {
-   if ( defined( 'DOING_AUTOSAVE' ) && DOING_AUTOSAVE ) return;
+   gn_asl_debug_log( __FUNCTION__ . " called for variation {$variation_id}." );
+   if ( defined( 'DOING_AUTOSAVE' ) && DOING_AUTOSAVE ) {
+      gn_asl_debug_log( __FUNCTION__ . ' aborted due to autosave.' );
+      return;
+   }
    if ( isset( $_POST['variable_price2'][ $i ] ) ) {
       update_post_meta( $variation_id, '_price2', wc_clean( wp_unslash( $_POST['variable_price2'][ $i ] ) ) );
    }
@@ -247,9 +276,13 @@ function gn_asl_save_additional_price_variation( $variation_id, $i ) {
  * @return void
  */
 function gn_asl_save_additional_sale_price( $product_id ) {
+    gn_asl_debug_log( __FUNCTION__ . " called for product {$product_id}." );
     global $typenow;
     if ( 'product' === $typenow ) {
-      if ( defined( 'DOING_AUTOSAVE' ) && DOING_AUTOSAVE ) return;
+      if ( defined( 'DOING_AUTOSAVE' ) && DOING_AUTOSAVE ) {
+         gn_asl_debug_log( __FUNCTION__ . ' aborted due to autosave.' );
+         return;
+      }
       if ( isset( $_POST['_sale_price2'] ) ) {
          update_post_meta( $product_id, '_sale_price2', wc_clean( wp_unslash( $_POST['_sale_price2'] ) ) );
       }
@@ -264,7 +297,11 @@ function gn_asl_save_additional_sale_price( $product_id ) {
  * @return void
  */
 function gn_asl_save_additional_sale_price_variation( $variation_id, $i ) {
-   if ( defined( 'DOING_AUTOSAVE' ) && DOING_AUTOSAVE ) return;
+   gn_asl_debug_log( __FUNCTION__ . " called for variation {$variation_id}." );
+   if ( defined( 'DOING_AUTOSAVE' ) && DOING_AUTOSAVE ) {
+      gn_asl_debug_log( __FUNCTION__ . ' aborted due to autosave.' );
+      return;
+   }
    if ( isset( $_POST['variable_sale_price2'][ $i ] ) ) {
       update_post_meta( $variation_id, '_sale_price2', wc_clean( wp_unslash( $_POST['variable_sale_price2'][ $i ] ) ) );
    }
@@ -318,20 +355,28 @@ function gn_asl_location_name_field_variation( $loop, $data, $variation ) {
  * Save the location name for simple products.
  */
 function gn_asl_save_location_name( $product_id ) {
+    gn_asl_debug_log( __FUNCTION__ . " called for product {$product_id}." );
     global $typenow;
     if ( 'product' === $typenow ) {
-        if ( defined( 'DOING_AUTOSAVE' ) && DOING_AUTOSAVE ) return;
-        if ( isset( $_POST['_location2_name'] ) ) {
-            update_post_meta( $product_id, '_location2_name', sanitize_text_field( wp_unslash( $_POST['_location2_name'] ) ) );
-        }
-    }
+      if ( defined( 'DOING_AUTOSAVE' ) && DOING_AUTOSAVE ) {
+         gn_asl_debug_log( __FUNCTION__ . ' aborted due to autosave.' );
+         return;
+      }
+      if ( isset( $_POST['_location2_name'] ) ) {
+         update_post_meta( $product_id, '_location2_name', sanitize_text_field( wp_unslash( $_POST['_location2_name'] ) ) );
+      }
+   }
 }
 
 /**
  * Save the location name for product variations.
  */
 function gn_asl_save_location_name_variation( $variation_id, $i ) {
-   if ( defined( 'DOING_AUTOSAVE' ) && DOING_AUTOSAVE ) return;
+   gn_asl_debug_log( __FUNCTION__ . " called for variation {$variation_id}." );
+   if ( defined( 'DOING_AUTOSAVE' ) && DOING_AUTOSAVE ) {
+      gn_asl_debug_log( __FUNCTION__ . ' aborted due to autosave.' );
+      return;
+   }
    if ( isset( $_POST['variable_location2_name'][ $i ] ) ) {
       update_post_meta( $variation_id, '_location2_name', sanitize_text_field( wp_unslash( $_POST['variable_location2_name'][ $i ] ) ) );
    }
@@ -462,6 +507,7 @@ add_filter( 'woocommerce_payment_complete_reduce_order_stock', 'gn_asl_maybe_red
  * @return bool False to prevent default reduction when custom logic runs.
  */
 function gn_asl_maybe_reduce_second_stock( $reduce, $order_id ) {
+   gn_asl_debug_log( __FUNCTION__ . " called for order {$order_id}." );
    $order = wc_get_order( $order_id );
    $atleastastock2change = false;
    foreach ( $order->get_items() as $item ) {
@@ -478,7 +524,10 @@ function gn_asl_maybe_reduce_second_stock( $reduce, $order_id ) {
       if ( $qty <= $stock1 ) continue;
       $atleastastock2change = true;
    }
-   if ( ! $atleastastock2change ) return $reduce;
+   if ( ! $atleastastock2change ) {
+      gn_asl_debug_log( __FUNCTION__ . ' no secondary stock changes required.' );
+      return $reduce;
+   }
    foreach ( $order->get_items() as $item ) {
       if ( ! $item->is_type( 'line_item' ) ) {
          continue;
@@ -505,6 +554,7 @@ function gn_asl_maybe_reduce_second_stock( $reduce, $order_id ) {
       }
    }
    $order->get_data_store()->set_stock_reduced( $order_id, true );
+   gn_asl_debug_log( __FUNCTION__ . ' stock reduction complete.' );
    return false;
 }
 
