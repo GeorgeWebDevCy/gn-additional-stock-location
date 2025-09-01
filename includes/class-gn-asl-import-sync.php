@@ -220,7 +220,45 @@ final class Module {
     public static function on_saved_post($post_id, $xml, $is_update, $import_id = 0) : void {
         $import_id = (int) ($import_id ?: self::$current_import_id);
         if ($import_id !== self::IMPORT_ID) return;
+
         $sku = get_post_meta($post_id, '_sku', true);
+
+        // Ensure variation SKUs follow the "parentSKU-size" pattern.
+        if (get_post_type($post_id) === 'product_variation') {
+            $parent_id  = (int) wp_get_post_parent_id($post_id);
+            $parent_sku = $parent_id ? get_post_meta($parent_id, '_sku', true) : '';
+            $size       = '';
+
+            if (function_exists('wc_get_product')) {
+                $variation = wc_get_product($post_id);
+                if ($variation) {
+                    $size = $variation->get_attribute('pa_size');
+                }
+            }
+
+            if ($size === '') {
+                $size = get_post_meta($post_id, 'attribute_pa_size', true);
+            }
+
+            if ($parent_sku && $size) {
+                $desired = $parent_sku . '-' . $size;
+                if ($desired !== $sku) {
+                    update_post_meta($post_id, '_sku', $desired);
+                    if (isset(self::$import_cache[$sku])) {
+                        self::$import_cache[$desired] = self::$import_cache[$sku];
+                        unset(self::$import_cache[$sku]);
+                    }
+                    self::log('Adjusted variation SKU from parent and size.', [
+                        'post_id'   => (int) $post_id,
+                        'parent_id' => (int) $parent_id,
+                        'old_sku'   => $sku,
+                        'new_sku'   => $desired,
+                    ]);
+                    $sku = $desired;
+                }
+            }
+        }
+
         if (empty($sku)) {
             self::log('Saved post has no SKU; skipping.', compact('post_id','import_id','is_update'));
             return;
