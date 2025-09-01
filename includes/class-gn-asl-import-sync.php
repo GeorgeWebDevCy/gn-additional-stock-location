@@ -51,7 +51,9 @@ final class Module {
 
     /** Get absolute path to log (uploads dir). */
     private static function log_path() : string {
-        $uploads = wp_get_upload_dir();
+        // wp_get_upload_dir() doesn't create the directory. wp_upload_dir()
+        // ensures the uploads path exists so our log file can be written.
+        $uploads = wp_upload_dir();
         return trailingslashit($uploads['basedir']) . self::LOG_FILE;
     }
 
