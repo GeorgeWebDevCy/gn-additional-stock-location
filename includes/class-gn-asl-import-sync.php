@@ -14,6 +14,7 @@ if ( ! defined('ABSPATH') ) exit;
 final class Module {
     const LOG_MAX   = 5242880; // 5MB
     const LOG_FILE  = 'gn-asl-import.log'; // Stored in wp-content/uploads/
+    const IMPORT_ID = 3; // Only process this WP All Import ID
 
     /**
      * Cache of the latest fields received from WP All Import keyed by SKU.
@@ -21,6 +22,13 @@ final class Module {
      * @var array<string,array<string,mixed>>
      */
     private static $import_cache = [];
+
+    /**
+     * Tracks the last SKU/post ID logged so we can separate blocks.
+     *
+     * @var string|int|null
+     */
+    private static $last_block = null;
 
     public static function boot() {
         // Only run if WooCommerce is present.
@@ -55,11 +63,28 @@ final class Module {
         }
     }
 
-    /** Write to log. */
+    /** Write to log with human-readable blocks per product. */
     private static function log(string $msg, array $ctx = []) : void {
         self::rotate_if_needed();
-        $line = '[' . gmdate('Y-m-d H:i:s') . 'Z] ' . $msg;
-        if ($ctx) $line .= ' ' . wp_json_encode($ctx, JSON_UNESCAPED_UNICODE|JSON_UNESCAPED_SLASHES);
+
+        // Determine block key based on SKU or post ID.
+        $key  = $ctx['sku'] ?? ($ctx['post_id'] ?? null);
+        $line = '';
+
+        if ($key !== null && $key !== self::$last_block) {
+            $line .= PHP_EOL . '=== ' . $key . ' ===' . PHP_EOL;
+            self::$last_block = $key;
+        }
+
+        $line .= '[' . gmdate('Y-m-d H:i:s') . 'Z] ' . $msg . PHP_EOL;
+
+        if ($ctx) {
+            $json = wp_json_encode($ctx, JSON_PRETTY_PRINT|JSON_UNESCAPED_UNICODE|JSON_UNESCAPED_SLASHES);
+            foreach (explode("\n", $json) as $j) {
+                $line .= '  ' . $j . PHP_EOL;
+            }
+        }
+
         $line .= PHP_EOL;
         @file_put_contents(self::log_path(), $line, FILE_APPEND);
     }
@@ -145,6 +170,7 @@ final class Module {
 
     /** pmxi_after_post_import — placeholder for any after-import logic. */
     public static function after_post_import($import_id) : void {
+        if ((int) $import_id !== self::IMPORT_ID) return;
         // Hook available for a second pass after imports if needed.
     }
 
@@ -156,6 +182,7 @@ final class Module {
      * with older versions that still provided it.
      */
     public static function on_saved_post($post_id, $xml, $is_update, $import_id = 0) : void {
+        if ((int) $import_id !== self::IMPORT_ID) return;
         $sku = get_post_meta($post_id, '_sku', true);
         if (empty($sku)) {
             self::log('Saved post has no SKU; skipping.', compact('post_id','import_id','is_update'));
@@ -235,6 +262,7 @@ final class Module {
 
     /** pmxi_article_data — force WPAI to update (not create) when SKU exists. */
     public static function force_update_when_sku_exists($article_data, $import_id) {
+        if ((int) $import_id !== self::IMPORT_ID) return $article_data;
         // Try to read SKU in different WPAI shapes.
         $sku = '';
         if (isset($article_data['meta_input']['_sku'])) {
