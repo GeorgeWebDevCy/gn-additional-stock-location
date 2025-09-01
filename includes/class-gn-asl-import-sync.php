@@ -183,8 +183,13 @@ final class Module {
         return true;
     }
 
-    /** Extract secondary stock quantity from the XML feed. */
-    private static function extract_secondary_stock_from_xml($xml) : int {
+    /**
+     * Extract secondary stock quantity from the XML feed.
+     *
+     * When multiple sizes are present the quantity must match the
+     * variation's size; otherwise the first quantity is used as a fallback.
+     */
+    private static function extract_secondary_stock_from_xml($xml, string $target_size = '') : int {
         $secondary = 0;
         if ($xml instanceof \SimpleXMLElement) {
             if (isset($xml->available_quantity)) {
@@ -193,9 +198,27 @@ final class Module {
                 $secondary = (int) $xml->available_summary_quantity;
             } elseif (isset($xml->sizes)) {
                 foreach ($xml->sizes->children() as $item) {
-                    if (isset($item->available_quantity)) {
-                        $secondary = (int) $item->available_quantity;
-                        break;
+                    $item_size = '';
+                    if (isset($item->size)) {
+                        $item_size = (string) $item->size;
+                    } elseif (isset($item['size'])) {
+                        $item_size = (string) $item['size'];
+                    } elseif (isset($item->name)) {
+                        $item_size = (string) $item->name;
+                    } elseif (isset($item['name'])) {
+                        $item_size = (string) $item['name'];
+                    }
+
+                    if ($target_size === '' || $item_size === $target_size) {
+                        if (isset($item->available_quantity)) {
+                            $secondary = (int) $item->available_quantity;
+                        } elseif (isset($item->quantity)) {
+                            $secondary = (int) $item->quantity;
+                        }
+
+                        if ($target_size === '' || $secondary > 0) {
+                            break;
+                        }
                     }
                 }
             }
@@ -221,13 +244,13 @@ final class Module {
         $import_id = (int) ($import_id ?: self::$current_import_id);
         if ($import_id !== self::IMPORT_ID) return;
 
-        $sku = get_post_meta($post_id, '_sku', true);
+        $sku  = get_post_meta($post_id, '_sku', true);
+        $size = '';
 
         // Ensure variation SKUs follow the "parentSKU-size" pattern.
         if (get_post_type($post_id) === 'product_variation') {
             $parent_id  = (int) wp_get_post_parent_id($post_id);
             $parent_sku = $parent_id ? get_post_meta($parent_id, '_sku', true) : '';
-            $size       = '';
 
             if (function_exists('wc_get_product')) {
                 $variation = wc_get_product($post_id);
@@ -274,7 +297,7 @@ final class Module {
         if (function_exists('update_post_meta') && $xml instanceof \SimpleXMLElement) {
             $current_secondary = (int) get_post_meta($post_id, '_stock2', true);
             if ($current_secondary <= 0) {
-                $secondary = self::extract_secondary_stock_from_xml($xml);
+                $secondary = self::extract_secondary_stock_from_xml($xml, $size);
                 if ($secondary > 0) {
                     update_post_meta($post_id, '_stock2', $secondary);
                     if (isset(self::$import_cache[$sku])) {
