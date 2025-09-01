@@ -295,6 +295,18 @@ final class Module {
             'is_update' => (bool) $is_update,
         ]);
 
+        // Apply price fields only when provided by the import.
+        if (isset(self::$import_cache[$sku])) {
+            foreach (['_regular_price','_sale_price','_price2','_sale_price2'] as $key) {
+                if (array_key_exists($key, self::$import_cache[$sku])) {
+                    $val = self::$import_cache[$sku][$key];
+                    if (!self::safe_update_meta($post_id, $key, $val)) {
+                        unset(self::$import_cache[$sku][$key]);
+                    }
+                }
+            }
+        }
+
         // Fallback: if secondary stock wasn't provided, try to read it from the XML.
         if (function_exists('update_post_meta') && $xml instanceof \SimpleXMLElement) {
             $current_secondary = (int) get_post_meta($post_id, '_stock2', true);
