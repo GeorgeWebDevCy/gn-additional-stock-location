@@ -183,6 +183,25 @@ final class Module {
         return true;
     }
 
+    /** Extract secondary stock quantity from the XML feed. */
+    private static function extract_secondary_stock_from_xml($xml) : int {
+        $secondary = 0;
+        if ($xml instanceof \SimpleXMLElement) {
+            if (isset($xml->available_quantity)) {
+                $secondary = (int) $xml->available_quantity;
+            } elseif (isset($xml->available_summary_quantity)) {
+                $secondary = (int) $xml->available_summary_quantity;
+            } elseif (isset($xml->sizes)) {
+                foreach ($xml->sizes->children() as $item) {
+                    if (isset($item->available_quantity)) {
+                        $secondary += (int) $item->available_quantity;
+                    }
+                }
+            }
+        }
+        return $secondary;
+    }
+
     /** pmxi_after_post_import — placeholder for any after-import logic. */
     public static function after_post_import($import_id) : void {
         self::$current_import_id = 0;
@@ -211,6 +230,25 @@ final class Module {
             'import_id' => (int) $import_id,
             'is_update' => (bool) $is_update,
         ]);
+
+        // Fallback: if secondary stock wasn't provided, try to read it from the XML.
+        if (function_exists('update_post_meta') && $xml instanceof \SimpleXMLElement) {
+            $current_secondary = (int) get_post_meta($post_id, '_stock2', true);
+            if ($current_secondary <= 0) {
+                $secondary = self::extract_secondary_stock_from_xml($xml);
+                if ($secondary > 0) {
+                    update_post_meta($post_id, '_stock2', $secondary);
+                    if (isset(self::$import_cache[$sku])) {
+                        self::$import_cache[$sku]['_stock2'] = (string) $secondary;
+                    }
+                    self::log('Applied secondary stock from XML.', [
+                        'post_id'   => (int) $post_id,
+                        'sku'       => $sku,
+                        'secondary' => (int) $secondary,
+                    ]);
+                }
+            }
+        }
 
         $existing_id = wc_get_product_id_by_sku($sku);
 
