@@ -3,7 +3,7 @@ Contributors: yourname
 Tags: woocommerce, inventory, stock
 Requires at least: 5.0
 Tested up to: 6.5
-Stable tag: 1.9.22
+Stable tag: 1.9.23
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -11,9 +11,9 @@ Adds a second stock location called **Golden Sneakers** to WooCommerce products 
 Each product stores the active location name in a dropdown field displayed on the edit screen and the product page so you can select between your predefined locations.
 
 == Description ==
-This plugin lets you track inventory in a secondary location for every WooCommerce product. Each item also gets an optional price that is used once the primary location runs out of stock. Stock quantities and status are calculated based on the combined total and orders automatically reduce quantities in both locations. The plugin also ships with an update checker that can pull new versions from GitHub.
+This plugin lets you track inventory in a secondary location for every WooCommerce product. Each item also gets an optional price that is used when the secondary location is selected. Stock quantities and status respect the active location and orders reduce quantities for that location only. The plugin also ships with an update checker that can pull new versions from GitHub.
 
-When the primary location is empty you can also specify a **Golden Sneakers Sale Price** to offer a discount on items stored in the secondary location.
+When the secondary location is active you can also specify a **Golden Sneakers Sale Price** to offer a discount on items stored there.
 
 == Installation ==
 1. Upload the `gn-additional-stock-location` folder to your `/wp-content/plugins/` directory.
@@ -21,6 +21,9 @@ When the primary location is empty you can also specify a **Golden Sneakers Sale
 3. Edit a product to enter values for **Golden Sneakers Stock** and **Golden Sneakers Price**. Variations have their own fields as well.
 
 == Changelog ==
+= 1.9.23 =
+* Treat stock, quantity and prices separately per location without summing totals.
+
 = 1.9.22 =
 * Prevent double-counting of secondary stock by reading raw `_stock` meta.
 

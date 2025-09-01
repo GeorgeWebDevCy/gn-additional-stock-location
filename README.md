@@ -1,14 +1,14 @@
 # GN Additional Stock Location
 
-GN Additional Stock Location extends WooCommerce with a second inventory location for every product. A separate price can be assigned to items stored in that location. Stock quantities and status are calculated from the combined amount and orders automatically deduct from both locations when needed.
+GN Additional Stock Location extends WooCommerce with a second inventory location for every product. A separate price can be assigned to items stored in that location. Stock quantities and status are based on the selected location and orders deduct stock from that location only.
 
 ## Features
 
 - Second **Stock Location** field on the inventory tab for simple and variable products. The secondary location is called **Golden Sneakers** while the primary WooCommerce location is **Sneakfreaks**.
-- **Golden Sneakers Price** field that is used when the primary location runs out of stock.
+- **Golden Sneakers Price** field that is used when the secondary location is selected.
 - **Golden Sneakers Sale Price** to offer discounts when location two is active.
-- Stock status and available quantity are based on the sum of both locations.
-- Automatic price switching once the primary location is empty.
+ - Stock status and available quantity respect the active location without summing totals.
+ - Automatic price switching once the secondary location is selected.
 - Dropdown **Location Name** field lets you switch between Sneakfreaks and Golden Sneakers.
 - Order processing reduces stock from both locations and logs changes on the order.
 - Built in update checker pulls new releases from GitHub.
@@ -21,7 +21,7 @@ GN Additional Stock Location extends WooCommerce with a second inventory locatio
 
 ## Sale Price for Golden Sneakers
 
-Set **Golden Sneakers Sale Price** to offer a discounted amount when stock from the second location is being sold. The sale price only applies once the primary stock level reaches zero. Regular WooCommerce sale functionality for the main price is unaffected.
+Set **Golden Sneakers Sale Price** to offer a discounted amount when the secondary location is active. The sale price applies only to items stored in that location. Regular WooCommerce sale functionality for the main price is unaffected.
 
 ## Location Name Meta
 
